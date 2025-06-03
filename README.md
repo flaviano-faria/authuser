@@ -13,12 +13,7 @@ A demo Spring Boot application for user authentication and management.
    git clone <repo-url>
    cd authuser
    ```
-2. Configure your PostgreSQL database. Default settings (see `src/main/resources/application.yml`):
-   - URL: `jdbc:postgresql://localhost:5432/ead-authuser`
-   - Username: `postgres`
-   - Password: `banco123`
-   
-   Update these values as needed for your environment.
+2. Configure your PostgreSQL database
 
 ## Running the Application
 Use Maven to build and run the application:
