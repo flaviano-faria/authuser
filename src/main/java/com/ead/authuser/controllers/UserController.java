@@ -2,6 +2,7 @@ package com.ead.authuser.controllers;
 
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.services.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +22,7 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<List<UserModel>> getAllUsers() {
-        List<UserModel> userModels = userService.findAll();
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(userService.findAll());
     }
 }

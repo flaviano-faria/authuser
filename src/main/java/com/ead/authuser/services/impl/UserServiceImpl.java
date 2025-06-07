@@ -18,6 +18,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserModel> findAll() {
-        return List.of();
+        return userRepository.findAll();
     }
 }
