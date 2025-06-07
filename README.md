@@ -30,8 +30,31 @@ Run tests with:
 
 ## Project Structure
 - `src/main/java/com/ead/authuser/` - Main application code
+  - `controllers/` - REST controllers (e.g., `UserController`)
+  - `services/` - Service interfaces (e.g., `UserService`) and implementations (`impl/`)
+  - `repositories/` - Spring Data JPA repositories (e.g., `UserRepository`)
+  - `models/` - Entity models (e.g., `UserModel`)
+  - `enums/` - Enum types (e.g., `UserStatus`, `UserType`)
 - `src/main/resources/` - Configuration files
 - `src/test/java/com/ead/authuser/` - Test classes
+
+## REST API
+### User Endpoints
+- `GET /users` - Retrieve a list of all users.
+
+#### User Model
+The `UserModel` entity includes the following fields:
+- `userId` (UUID)
+- `username` (String)
+- `password` (String, not exposed in API)
+- `email` (String)
+- `fullName` (String)
+- `userStatus` (Enum: `ACTIVE`, `BLOCKED`)
+- `userType` (Enum: `ADMIN`, `USER`, `STUDENT`, `INSTRUCTOR`)
+- `phoneNumber` (String)
+- `imageUrl` (String)
+- `creationDate` (LocalDateTime)
+- `lastUpdateDate` (LocalDateTime)
 
 ## References
 - [Spring Boot Documentation](https://spring.io/projects/spring-boot)
@@ -40,4 +63,4 @@ Run tests with:
 
 ---
 
-> This project currently provides a basic Spring Boot setup. No REST endpoints or business logic are implemented yet.
+> This project provides a basic Spring Boot setup with a user entity, service, repository, and a REST endpoint for listing users.
