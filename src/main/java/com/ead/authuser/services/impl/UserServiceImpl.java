@@ -27,4 +27,9 @@ public class UserServiceImpl implements UserService {
     public Optional<UserModel> findById(UUID userId) {
         return userRepository.findById(userId);
     }
+
+    @Override
+    public void delete(UserModel userModel) {
+        userRepository.delete(userModel);
+    }
 }
