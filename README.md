@@ -41,6 +41,8 @@ Run tests with:
 ## REST API
 ### User Endpoints
 - `GET /users` - Retrieve a list of all users.
+- `GET /users/{userId}` - Retrieve a user by their ID.
+- `DELETE /users/{userId}` - Delete a user by their ID.
 
 #### User Model
 The `UserModel` entity includes the following fields:
