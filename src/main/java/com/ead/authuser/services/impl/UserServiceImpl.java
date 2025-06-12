@@ -25,7 +25,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<UserModel> findById(UUID userId) {
-        return userRepository.findById(userId);
+        Optional<UserModel> userModelOptional = userRepository.findById(userId);
+        if(userModelOptional.isEmpty()){
+            //new Exception
+        }
+        return userModelOptional;
     }
 
     @Override
