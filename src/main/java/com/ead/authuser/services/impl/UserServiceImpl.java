@@ -1,9 +1,11 @@
 package com.ead.authuser.services.impl;
 
+import com.ead.authuser.dtos.UserRecordDTO;
 import com.ead.authuser.exceptions.NotFoundException;
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.repositories.UserRepository;
 import com.ead.authuser.services.UserService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -36,5 +38,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public void delete(UserModel userModel) {
         userRepository.delete(userModel);
+    }
+
+    @Override
+    public UserModel registeruser(UserRecordDTO userRecordDTO) {
+        var userModel = new UserModel();
+        BeanUtils.copyProperties(userRecordDTO, userModel);
+        return null;
     }
 }

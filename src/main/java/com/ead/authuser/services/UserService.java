@@ -1,5 +1,6 @@
 package com.ead.authuser.services;
 
+import com.ead.authuser.dtos.UserRecordDTO;
 import com.ead.authuser.models.UserModel;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -12,4 +13,5 @@ public interface UserService {
     List<UserModel> findAll();
     Optional<UserModel> findById(UUID userId);
     void delete(UserModel userModel);
+    UserModel registeruser(UserRecordDTO userRecordDTO);
 }
