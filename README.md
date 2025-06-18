@@ -39,6 +39,9 @@ Run tests with:
 - `src/test/java/com/ead/authuser/` - Test classes
 
 ## REST API
+### Authentication Endpoints
+- `POST /auth/signup` - Register a new user. Accepts a JSON payload with user registration details (see `UserRecordDTO`).
+
 ### User Endpoints
 - `GET /users` - Retrieve a list of all users.
 - `GET /users/{userId}` - Retrieve a user by their ID.
