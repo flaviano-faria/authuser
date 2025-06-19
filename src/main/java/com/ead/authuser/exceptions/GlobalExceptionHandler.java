@@ -12,7 +12,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorRecordResponse> handleNotFoundException(NotFoundException e) {
         ErrorRecordResponse errorResponse = new ErrorRecordResponse(HttpStatus.NOT_FOUND.value(), e.getMessage(), null);
         return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-
-
     }
+
+    @ExceptionHandler(DuplicatedUsernameException.class)
+    public ResponseEntity<ErrorRecordResponse> handleDuplicatedUsernameException(DuplicatedUsernameException e) {
+        ErrorRecordResponse errorResponse = new ErrorRecordResponse(
+                HttpStatus.CONFLICT.value(), e.getMessage(), null);
+        return  ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+
 }

@@ -1,4 +1,4 @@
-package com.ead.authuser.services.impl;
+package com.ead.authuser.services.user.impl;
 
 import com.ead.authuser.dtos.UserRecordDTO;
 import com.ead.authuser.enums.UserStatus;
@@ -7,7 +7,9 @@ import com.ead.authuser.exceptions.NotFoundException;
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.repositories.UserRepository;
 import com.ead.authuser.services.UserService;
+import com.ead.authuser.services.user.handler.UserHandler;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,6 +22,9 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     final UserRepository userRepository;
+
+    @Autowired
+    private UserHandler userHandler;
 
     public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -46,12 +51,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserModel registeruser(UserRecordDTO userRecordDTO) {
-        var userModel = new UserModel();
-        BeanUtils.copyProperties(userRecordDTO, userModel);
-        userModel.setUserStatus(UserStatus.ACTIVE);
-        userModel.setUserType(UserType.USER);
-        userModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
-        userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+       userHandler.validateUserRecord(userRecordDTO);
+       UserModel userModel = userHandler.toUserModel(userRecordDTO);
         return userRepository.save(userModel);
     }
 }
