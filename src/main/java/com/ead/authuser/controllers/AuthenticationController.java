@@ -2,6 +2,7 @@ package com.ead.authuser.controllers;
 
 import com.ead.authuser.dtos.UserRecordDTO;
 import com.ead.authuser.services.UserService;
+import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,7 +21,9 @@ public class AuthenticationController {
 
     @PostMapping(value = "/signup")
     public ResponseEntity<Object> registerUser(
-            @RequestBody UserRecordDTO userRecordDTO) {
+            @RequestBody
+            @JsonView(UserRecordDTO.UserView.RegistrationPost.class)
+            UserRecordDTO userRecordDTO) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userService.registeruser(userRecordDTO));
     }
