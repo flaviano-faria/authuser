@@ -55,4 +55,12 @@ public class UserServiceImpl implements UserService {
        UserModel userModel = userHandler.toUserModel(userRecordDTO);
         return userRepository.save(userModel);
     }
+
+    @Override
+    public UserModel updateUser(UserRecordDTO userRecordDTO, UserModel userModel) {
+        userModel.setPhoneNumber(userRecordDTO.phoneNumber());
+        userModel.setFullName(userRecordDTO.fullName());
+        userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        return userRepository.save(userModel);
+    }
 }

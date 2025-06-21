@@ -14,4 +14,5 @@ public interface UserService {
     Optional<UserModel> findById(UUID userId);
     void delete(UserModel userModel);
     UserModel registeruser(UserRecordDTO userRecordDTO);
+    UserModel updateUser(UserRecordDTO userRecordDTO, UserModel userModel);
 }
