@@ -39,13 +39,32 @@ Run tests with:
 - `src/test/java/com/ead/authuser/` - Test classes
 
 ## REST API
+
 ### Authentication Endpoints
-- `POST /auth/signup` - Register a new user. Accepts a JSON payload with user registration details (see `UserRecordDTO`).
+- `POST /auth/signup` - Register a new user. 
+    - **Request Body:**
+      ```json
+      {
+        "username": "string",
+        "email": "string",
+        "password": "string",
+        "fullName": "string",
+        "phoneNumber": "string"
+      }
+      ```
 
 ### User Endpoints
 - `GET /users` - Retrieve a list of all users.
 - `GET /users/{userId}` - Retrieve a user by their ID.
 - `DELETE /users/{userId}` - Delete a user by their ID.
+- `PUT /users/{userId}` - Updates a user's `fullName` and `phoneNumber`.
+    - **Request Body:**
+      ```json
+      {
+        "fullName": "string",
+        "phoneNumber": "string"
+      }
+      ```
 
 #### User Model
 The `UserModel` entity includes the following fields:
