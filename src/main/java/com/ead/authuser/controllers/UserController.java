@@ -50,4 +50,20 @@ public class UserController {
       return ResponseEntity.status(HttpStatus.OK).body(
               userService.updateUser(userRecordDTO, userService.findById(userId).get()));
     }
+
+    @PutMapping("/{userId}/password")
+    public ResponseEntity<Object> updatePassword(
+            @PathVariable(value = "userId") UUID userId,
+            @RequestBody
+            @JsonView(UserRecordDTO.UserView.PasswordPut.class)  UserRecordDTO userRecordDTO) {
+
+        Optional<UserModel> userModelOptional = userService.findById(userId);
+
+        if(userModelOptional.get().getPassword().equals(userRecordDTO.oldPassword())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Error: Old password does not match");
+        }
+
+        userService.updatePassword(userRecordDTO, userModelOptional.get());
+        return ResponseEntity.status(HttpStatus.OK).body("Password updated");
+    }
 }

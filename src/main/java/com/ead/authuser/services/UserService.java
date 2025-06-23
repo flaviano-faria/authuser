@@ -15,4 +15,5 @@ public interface UserService {
     void delete(UserModel userModel);
     UserModel registeruser(UserRecordDTO userRecordDTO);
     UserModel updateUser(UserRecordDTO userRecordDTO, UserModel userModel);
+    UserModel updatePassword(UserRecordDTO userRecordDTO, UserModel userModel);
 }
