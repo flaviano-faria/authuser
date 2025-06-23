@@ -65,6 +65,17 @@ Run tests with:
         "phoneNumber": "string"
       }
       ```
+- `PUT /users/{userId}/password` - Update a user's password.
+    - **Request Body:**
+      ```json
+      {
+        "oldPassword": "string",
+        "password": "string"
+      }
+      ```
+    - **Response:**
+      - `200 OK` if the password is updated successfully.
+      - `409 CONFLICT` if the old password does not match.
 
 #### User Model
 The `UserModel` entity includes the following fields:
