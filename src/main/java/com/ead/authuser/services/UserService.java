@@ -16,4 +16,5 @@ public interface UserService {
     UserModel registeruser(UserRecordDTO userRecordDTO);
     UserModel updateUser(UserRecordDTO userRecordDTO, UserModel userModel);
     UserModel updatePassword(UserRecordDTO userRecordDTO, UserModel userModel);
+    UserModel updateImage(UserRecordDTO userRecordDTO, UserModel userModel);
 }
