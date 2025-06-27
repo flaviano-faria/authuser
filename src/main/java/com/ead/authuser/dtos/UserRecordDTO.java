@@ -6,28 +6,42 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record UserRecordDTO(
-        @NotBlank(message = "username is required")
-        @Size(min = 4, max = 50, message = "username size must be between 4 and 50")
+        @NotBlank(groups = UserView.RegistrationPost.class,
+                message = "username is required")
+        @Size(groups = UserView.RegistrationPost.class,
+                min = 4, max = 50, message = "username size must be between 4 and 50")
         @JsonView(UserView.RegistrationPost.class)
         String username,
 
-        @NotBlank(message = "email is required")
-        @Email(message = "email must have a valid format")
+        @NotBlank(groups = UserView.RegistrationPost.class,
+                message = "email is required")
+        @Email(groups = UserView.RegistrationPost.class,
+                message = "email must have a valid format")
         @JsonView(UserView.RegistrationPost.class)
         String email,
 
-        @NotBlank(message = "password is required")
-        @Size(min = 6, max = 20, message = "size must be between 6 and 20")
+        @NotBlank(groups = {UserView.RegistrationPost.class, UserView.RegistrationPost.class},
+                message = "password is required")
+        @Size(groups = {UserView.RegistrationPost.class, UserView.RegistrationPost.class},
+                min = 6, max = 20, message = "size must be between 6 and 20")
         @JsonView({UserView.RegistrationPost.class, UserView.PasswordPut.class})
         String password,
 
-
+        @NotBlank(groups = UserView.PasswordPut.class, message = "old password is required")
+        @Size(groups = UserView.PasswordPut.class,
+                min = 6, max = 20, message = "size must be between 6 and 20")
         @JsonView(UserView.PasswordPut.class)
         String oldPassword,
+
+        @NotBlank(groups = {UserView.RegistrationPost.class, UserView.RegistrationPost.class},
+                message = "fullName is required")
         @JsonView({UserView.RegistrationPost.class, UserView.UserPut.class})
         String fullName,
+
         @JsonView({UserView.RegistrationPost.class, UserView.UserPut.class})
         String phoneNumber,
+
+        @NotBlank(groups = UserView.ImagePut.class, message = "imageUrl is required")
         @JsonView(UserView.ImagePut.class)
         String imageUrl
 ) {
