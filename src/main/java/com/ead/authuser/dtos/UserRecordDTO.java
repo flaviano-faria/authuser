@@ -20,9 +20,9 @@ public record UserRecordDTO(
         @JsonView(UserView.RegistrationPost.class)
         String email,
 
-        @NotBlank(groups = {UserView.RegistrationPost.class, UserView.RegistrationPost.class},
+        @NotBlank(groups = {UserView.RegistrationPost.class, UserView.PasswordPut.class},
                 message = "password is required")
-        @Size(groups = {UserView.RegistrationPost.class, UserView.RegistrationPost.class},
+        @Size(groups = {UserView.RegistrationPost.class, UserView.PasswordPut.class},
                 min = 6, max = 20, message = "size must be between 6 and 20")
         @JsonView({UserView.RegistrationPost.class, UserView.PasswordPut.class})
         String password,
