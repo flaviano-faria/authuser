@@ -147,6 +147,60 @@ When an error is handled, the API returns a JSON response with the following str
 - `errorMessage`: Description of the error
 - `errorDetails`: Optional map of additional error details
 
+## UserRecordDTO
+
+The `UserRecordDTO` is used as the request body for user-related endpoints. It includes validation constraints and different fields are required depending on the operation (registration, update, password change, image update).
+
+| Field        | Type   | Required For           | Constraints & Notes                                                                 |
+|--------------|--------|-----------------------|-------------------------------------------------------------------------------------|
+| username     | String | Registration          | Required, 4-50 chars                                                               |
+| email        | String | Registration          | Required, must be valid email format                                                |
+| password     | String | Registration, Password| Required, 6-20 chars, must meet password policy                                     |
+| oldPassword  | String | Password              | Required for password update, 6-20 chars, must meet password policy                 |
+| fullName     | String | Registration, Update  | Required for registration, required for update                                      |
+| phoneNumber  | String | Registration, Update  | Optional                                                                           |
+| imageUrl     | String | Image Update          | Required for image update                                                           |
+
+**Validation Groups:**
+- **Registration:** Used in `POST /auth/signup` (username, email, password, fullName, phoneNumber)
+- **Update:** Used in `PUT /users/{userId}` (fullName, phoneNumber)
+- **Password:** Used in `PUT /users/{userId}/password` (oldPassword, password)
+- **Image Update:** Used in `PUT /users/{userId}/image` (imageUrl)
+
+**Example: Registration Request Body**
+```json
+{
+  "username": "string",
+  "email": "string",
+  "password": "string",
+  "fullName": "string",
+  "phoneNumber": "string"
+}
+```
+
+**Example: Update User Request Body**
+```json
+{
+  "fullName": "string",
+  "phoneNumber": "string"
+}
+```
+
+**Example: Update Password Request Body**
+```json
+{
+  "oldPassword": "string",
+  "password": "string"
+}
+```
+
+**Example: Update Image Request Body**
+```json
+{
+  "imageUrl": "string"
+}
+```
+
 ## References
 - [Spring Boot Documentation](https://spring.io/projects/spring-boot)
 - [Maven Documentation](https://maven.apache.org/)
