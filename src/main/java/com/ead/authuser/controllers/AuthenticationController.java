@@ -6,10 +6,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(value = "/auth")
@@ -21,6 +18,7 @@ public class AuthenticationController {
     }
 
     @PostMapping(value = "/signup")
+    @CrossOrigin(origins = "http://example.com")
     public ResponseEntity<Object> registerUser(
             @RequestBody @Validated(UserRecordDTO.UserView.RegistrationPost.class)
             @JsonView(UserRecordDTO.UserView.RegistrationPost.class)
