@@ -20,7 +20,8 @@ public class ResolverConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/users/**").allowedOrigins("http://example.com");
-        registry.addMapping("/auth/**").allowedOrigins("http://example.com");
+        /*registry.addMapping("/users/**").allowedOrigins("http://example.com");
+        registry.addMapping("/auth/**").allowedOrigins("http://example.com");*/
+        registry.addMapping("/**").maxAge(3600);
     }
 }
