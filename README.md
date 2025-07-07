@@ -201,6 +201,88 @@ The `UserRecordDTO` is used as the request body for user-related endpoints. It i
 }
 ```
 
+## Filtering and Pagination (Specification Resolver)
+
+The application supports advanced filtering and pagination for the `/users` endpoint using [specification-arg-resolver](https://github.com/tkaczmarzyk/specification-arg-resolver). You can filter users by the following fields:
+
+- `userType` (exact match)
+- `userStatus` (exact match)
+- `email` (contains, case-sensitive)
+- `username` (contains, case-sensitive)
+- `fullName` (contains, case-insensitive)
+
+**Example:**
+```
+GET /users?userType=ADMIN&email=example
+```
+
+Pagination is supported via standard Spring Data parameters:
+- `page` (default: 0)
+- `size` (default: 3)
+- `sort` (default: userId, ASC)
+
+**Example:**
+```
+GET /users?page=1&size=5&sort=username,desc
+```
+
+## Validation and UserRecordDTO
+
+The `UserRecordDTO` is used for all user-related requests and supports validation groups for different operations:
+
+| Field        | Type   | Required For           | Constraints & Notes                                                                 |
+|--------------|--------|-----------------------|-------------------------------------------------------------------------------------|
+| username     | String | Registration          | Required, 4-50 chars                                                               |
+| email        | String | Registration          | Required, must be valid email format                                                |
+| password     | String | Registration, Password| Required, 6-20 chars, must meet password policy                                     |
+| oldPassword  | String | Password              | Required for password update, 6-20 chars, must meet password policy                 |
+| fullName     | String | Registration, Update  | Required for registration, required for update                                      |
+| phoneNumber  | String | Registration, Update  | Optional                                                                           |
+| imageUrl     | String | Image Update          | Required for image update                                                           |
+
+### Password Policy
+Passwords must:
+- Be 6-20 characters long
+- Contain at least one digit, one lowercase letter, one uppercase letter, and one special character (!@#&()–[{}]:;',?/*~$^+=<>)
+- Not contain spaces
+
+If the password does not meet these requirements, a validation error will be returned.
+
+## Error Handling and Responses
+
+The application uses a global exception handler to provide consistent error responses:
+
+- **404 NOT FOUND:** When a user is not found
+- **409 CONFLICT:** When a username is already in use (duplicate)
+- **400 BAD REQUEST:** For validation errors
+
+**Error Response Example:**
+```json
+{
+  "errorCode": 409,
+  "errorMessage": "Username is already in use",
+  "errorDetails": null
+}
+```
+
+**Validation Error Example:**
+```json
+{
+  "errorCode": 400,
+  "errorMessage": "Error: Validation failed",
+  "errorDetails": {
+    "username": "username is required",
+    "password": "Invalid password. This one doesn't follow the correct pattern"
+  }
+}
+```
+
+## New Features
+- **Advanced filtering and pagination** for users using specification-arg-resolver
+- **Strong password policy** enforced via custom validation
+- **Duplicate username check** with clear error response
+- **Consistent error handling** for not found, conflict, and validation errors
+
 ## References
 - [Spring Boot Documentation](https://spring.io/projects/spring-boot)
 - [Maven Documentation](https://maven.apache.org/)
