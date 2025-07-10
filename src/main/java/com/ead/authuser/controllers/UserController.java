@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -35,6 +38,11 @@ public class UserController {
                     direction = Sort.Direction.ASC) Pageable pageable) {
 
         Page<UserModel> userModelPage = userService.findAll(spec, pageable);
+
+        userModelPage.toList().stream().forEach(
+                userModel -> userModel.add(
+                        linkTo(methodOn(UserController.class)
+                                .getOneUser(userModel.getUserId())).withSelfRel()));
         return ResponseEntity.status(HttpStatus.OK)
                 .body(userModelPage);
     }
