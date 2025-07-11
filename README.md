@@ -1,6 +1,6 @@
 # Authuser
 
-A demo Spring Boot application for user authentication and management.
+A demo Spring Boot application for user authentication and management with **Spring HATEOAS** support for hypermedia-driven REST APIs.
 
 ## Requirements
 - Java 21
@@ -38,6 +38,50 @@ Run tests with:
 - `src/main/resources/` - Configuration files
 - `src/test/java/com/ead/authuser/` - Test classes
 
+## Spring HATEOAS Features
+
+This application implements **Spring HATEOAS** (Hypermedia as the Engine of Application State) to provide hypermedia-driven REST APIs. HATEOAS enables clients to navigate through the API dynamically by following links embedded in the responses.
+
+### Key HATEOAS Features Implemented:
+
+1. **RepresentationModel Integration**: The `UserModel` extends `RepresentationModel<UserModel>`, allowing it to include HATEOAS links.
+
+2. **Dynamic Link Generation**: Using `WebMvcLinkBuilder` to create self-referencing links for resources.
+
+3. **Hypermedia Responses**: API responses include `_links` section with navigable links.
+
+### Dependencies
+The application includes the Spring HATEOAS starter:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-hateoas</artifactId>
+</dependency>
+```
+
+### HATEOAS Response Format
+Responses from HATEOAS-enabled endpoints include a `_links` section with hypermedia links:
+
+```json
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "username": "john_doe",
+  "email": "john@example.com",
+  "fullName": "John Doe",
+  "userStatus": "ACTIVE",
+  "userType": "USER",
+  "phoneNumber": "+1234567890",
+  "imageUrl": "https://example.com/image.jpg",
+  "creationDate": "01-01-2024 10:00:00",
+  "lastUpdateDate": "01-01-2024 10:00:00",
+  "_links": {
+    "self": {
+      "href": "http://localhost:8087/ead-authuser/users/123e4567-e89b-12d3-a456-426614174000"
+    }
+  }
+}
+```
+
 ## REST API
 
 ### Authentication Endpoints
@@ -57,61 +101,139 @@ Run tests with:
   - `201 CREATED` with the created user object.
 
 ### User Endpoints
-- `GET /users`  
-  Retrieve a list of all users.
 
-- `GET /users/{userId}`  
-  Retrieve a user by their ID.  
-  **Response:**  
-  - `200 OK` with the user object.  
-  - `404 NOT FOUND` if the user does not exist.
+#### `GET /users`
+Retrieve a paginated list of all users with HATEOAS links.
 
-- `DELETE /users/{userId}`  
-  Delete a user by their ID.  
-  **Response:**  
-  - `200 OK` if deleted.  
-  - `404 NOT FOUND` if the user does not exist.
+**Query Parameters:**
+- `page` (default: 0) - Page number
+- `size` (default: 3) - Page size
+- `sort` (default: userId,ASC) - Sort field and direction
 
-- `PUT /users/{userId}`  
-  Update a user's `fullName` and `phoneNumber`.  
-  **Request Body:**
-  ```json
-  {
-    "fullName": "string",
-    "phoneNumber": "string"
+**Response Example:**
+```json
+{
+  "content": [
+    {
+      "userId": "123e4567-e89b-12d3-a456-426614174000",
+      "username": "john_doe",
+      "email": "john@example.com",
+      "fullName": "John Doe",
+      "userStatus": "ACTIVE",
+      "userType": "USER",
+      "phoneNumber": "+1234567890",
+      "imageUrl": "https://example.com/image.jpg",
+      "creationDate": "01-01-2024 10:00:00",
+      "lastUpdateDate": "01-01-2024 10:00:00",
+      "_links": {
+        "self": {
+          "href": "http://localhost:8087/ead-authuser/users/123e4567-e89b-12d3-a456-426614174000"
+        }
+      }
+    }
+  ],
+  "pageable": {
+    "sort": {
+      "sorted": true,
+      "unsorted": false,
+      "empty": false
+    },
+    "pageNumber": 0,
+    "pageSize": 3,
+    "offset": 0,
+    "paged": true,
+    "unpaged": false
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true,
+  "first": true,
+  "sort": {
+    "sorted": true,
+    "unsorted": false,
+    "empty": false
+  },
+  "numberOfElements": 1,
+  "size": 3,
+  "number": 0,
+  "empty": false
+}
+```
+
+#### `GET /users/{userId}`
+Retrieve a user by their ID with HATEOAS links.
+
+**Response:**  
+- `200 OK` with the user object including `_links` section.
+- `404 NOT FOUND` if the user does not exist.
+
+**Response Example:**
+```json
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "username": "john_doe",
+  "email": "john@example.com",
+  "fullName": "John Doe",
+  "userStatus": "ACTIVE",
+  "userType": "USER",
+  "phoneNumber": "+1234567890",
+  "imageUrl": "https://example.com/image.jpg",
+  "creationDate": "01-01-2024 10:00:00",
+  "lastUpdateDate": "01-01-2024 10:00:00",
+  "_links": {
+    "self": {
+      "href": "http://localhost:8087/ead-authuser/users/123e4567-e89b-12d3-a456-426614174000"
+    }
   }
-  ```
-  **Response:**  
-  - `200 OK` with the updated user object.  
-  - `404 NOT FOUND` if the user does not exist.
+}
+```
 
-- `PUT /users/{userId}/password`  
-  Update a user's password.  
-  **Request Body:**
-  ```json
-  {
-    "oldPassword": "string",
-    "password": "string"
-  }
-  ```
-  **Response:**  
-  - `200 OK` if the password is updated successfully.  
-  - `409 CONFLICT` if the old password does not match.  
-  - `404 NOT FOUND` if the user does not exist.
+#### `DELETE /users/{userId}`
+Delete a user by their ID.  
+**Response:**  
+- `200 OK` if deleted.  
+- `404 NOT FOUND` if the user does not exist.
 
-- `PUT /users/{userId}/image`  
-  Update a user's profile image.  
-  **Request Body:**
-  ```json
-  {
-    "imageUrl": "string"
-  }
-  ```
-  **Response:**  
-  - `200 OK` with the updated user object.  
-  - `404 NOT FOUND` if the user does not exist.
+#### `PUT /users/{userId}`
+Update a user's `fullName` and `phoneNumber`.  
+**Request Body:**
+```json
+{
+  "fullName": "string",
+  "phoneNumber": "string"
+}
+```
+**Response:**  
+- `200 OK` with the updated user object including HATEOAS links.  
+- `404 NOT FOUND` if the user does not exist.
 
-#### User Model
+#### `PUT /users/{userId}/password`
+Update a user's password.  
+**Request Body:**
+```json
+{
+  "oldPassword": "string",
+  "password": "string"
+}
+```
+**Response:**  
+- `200 OK` if the password is updated successfully.  
+- `409 CONFLICT` if the old password does not match.  
+- `404 NOT FOUND` if the user does not exist.
+
+#### `PUT /users/{userId}/image`
+Update a user's profile image.  
+**Request Body:**
+```json
+{
+  "imageUrl": "string"
+}
+```
+**Response:**  
+- `200 OK` with the updated user object including HATEOAS links.  
+- `404 NOT FOUND` if the user does not exist.
+
+### User Model
 The `UserModel` entity includes the following fields:
 - `userId` (UUID)
 - `username` (String)
@@ -124,6 +246,7 @@ The `UserModel` entity includes the following fields:
 - `imageUrl` (String)
 - `creationDate` (LocalDateTime)
 - `lastUpdateDate` (LocalDateTime)
+- `_links` (HATEOAS links section)
 
 ### Exception Handling
 
@@ -201,93 +324,20 @@ The `UserRecordDTO` is used as the request body for user-related endpoints. It i
 }
 ```
 
-## Filtering and Pagination (Specification Resolver)
+## Benefits of HATEOAS Implementation
 
-The application supports advanced filtering and pagination for the `/users` endpoint using [specification-arg-resolver](https://github.com/tkaczmarzyk/specification-arg-resolver). You can filter users by the following fields:
+1. **Discoverability**: Clients can discover available actions by following links in responses
+2. **Loose Coupling**: Clients don't need to know specific URL patterns
+3. **Self-Documenting**: API responses include information about available operations
+4. **Evolvability**: API can evolve without breaking clients that follow links
+5. **REST Compliance**: Follows REST principles more closely with hypermedia controls
 
-- `userType` (exact match)
-- `userStatus` (exact match)
-- `email` (contains, case-sensitive)
-- `username` (contains, case-sensitive)
-- `fullName` (contains, case-insensitive)
+## API Navigation with HATEOAS
 
-**Example:**
-```
-GET /users?userType=ADMIN&email=example
-```
+Clients can navigate the API by:
+1. Starting with a known entry point
+2. Following links in the `_links` section of responses
+3. Using the `href` values to make subsequent requests
+4. Discovering available operations dynamically
 
-Pagination is supported via standard Spring Data parameters:
-- `page` (default: 0)
-- `size` (default: 3)
-- `sort` (default: userId, ASC)
-
-**Example:**
-```
-GET /users?page=1&size=5&sort=username,desc
-```
-
-## Validation and UserRecordDTO
-
-The `UserRecordDTO` is used for all user-related requests and supports validation groups for different operations:
-
-| Field        | Type   | Required For           | Constraints & Notes                                                                 |
-|--------------|--------|-----------------------|-------------------------------------------------------------------------------------|
-| username     | String | Registration          | Required, 4-50 chars                                                               |
-| email        | String | Registration          | Required, must be valid email format                                                |
-| password     | String | Registration, Password| Required, 6-20 chars, must meet password policy                                     |
-| oldPassword  | String | Password              | Required for password update, 6-20 chars, must meet password policy                 |
-| fullName     | String | Registration, Update  | Required for registration, required for update                                      |
-| phoneNumber  | String | Registration, Update  | Optional                                                                           |
-| imageUrl     | String | Image Update          | Required for image update                                                           |
-
-### Password Policy
-Passwords must:
-- Be 6-20 characters long
-- Contain at least one digit, one lowercase letter, one uppercase letter, and one special character (!@#&()–[{}]:;',?/*~$^+=<>)
-- Not contain spaces
-
-If the password does not meet these requirements, a validation error will be returned.
-
-## Error Handling and Responses
-
-The application uses a global exception handler to provide consistent error responses:
-
-- **404 NOT FOUND:** When a user is not found
-- **409 CONFLICT:** When a username is already in use (duplicate)
-- **400 BAD REQUEST:** For validation errors
-
-**Error Response Example:**
-```json
-{
-  "errorCode": 409,
-  "errorMessage": "Username is already in use",
-  "errorDetails": null
-}
-```
-
-**Validation Error Example:**
-```json
-{
-  "errorCode": 400,
-  "errorMessage": "Error: Validation failed",
-  "errorDetails": {
-    "username": "username is required",
-    "password": "Invalid password. This one doesn't follow the correct pattern"
-  }
-}
-```
-
-## New Features
-- **Advanced filtering and pagination** for users using specification-arg-resolver
-- **Strong password policy** enforced via custom validation
-- **Duplicate username check** with clear error response
-- **Consistent error handling** for not found, conflict, and validation errors
-
-## References
-- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
-- [Maven Documentation](https://maven.apache.org/)
-- See `HELP.md` for more guides and references
-
----
-
-> This project provides a basic Spring Boot setup with a user entity, service, repository, and a REST endpoint for listing users.
+This approach makes the API more flexible and maintainable while providing a better developer experience.
