@@ -19,3 +19,7 @@ spring:
           lob:
             non-contextual-creation: true
 
+logging:
+  level:
+    com.ead: INFO
+    org.hibernate: DEBUG
