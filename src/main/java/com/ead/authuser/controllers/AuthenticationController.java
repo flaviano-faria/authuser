@@ -3,8 +3,8 @@ package com.ead.authuser.controllers;
 import com.ead.authuser.dtos.UserRecordDTO;
 import com.ead.authuser.services.UserService;
 import com.fasterxml.jackson.annotation.JsonView;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(value = "/auth")
 public class AuthenticationController {
 
-    Logger logger = LoggerFactory.getLogger(AuthenticationController.class);
+    Logger logger = LogManager.getLogger(AuthenticationController.class);
     final UserService userService;
 
     public AuthenticationController(UserService userService) {
@@ -22,11 +22,12 @@ public class AuthenticationController {
     }
 
     @PostMapping(value = "/signup")
-    @CrossOrigin(origins = "http://example.com")
     public ResponseEntity<Object> registerUser(
             @RequestBody @Validated(UserRecordDTO.UserView.RegistrationPost.class)
             @JsonView(UserRecordDTO.UserView.RegistrationPost.class)
             UserRecordDTO userRecordDTO) {
+
+        logger.debug("POST registerUser received userRecordDTO: {}", userRecordDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userService.registeruser(userRecordDTO));
     }
