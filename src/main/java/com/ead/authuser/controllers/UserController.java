@@ -38,7 +38,8 @@ public class UserController {
     public ResponseEntity<Page<UserModel>> getAllUsers(
             SpecificationTemplate.UserSpec spec,
             @PageableDefault(page = 0, size = 3, sort = "userId",
-                    direction = Sort.Direction.ASC) Pageable pageable) {
+                    direction = Sort.Direction.ASC) Pageable pageable,
+            @RequestParam (required = false) UUID courseId) {
 
         Page<UserModel> userModelPage = userService.findAll(spec, pageable);
 
