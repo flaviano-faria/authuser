@@ -1,6 +1,6 @@
 # Authuser
 
-A demo Spring Boot application for user authentication and management with **Spring HATEOAS** support for hypermedia-driven REST APIs.
+A demo Spring Boot application for user authentication and management with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, and **API Composition** capabilities.
 
 ## Requirements
 - Java 21
@@ -30,13 +30,106 @@ Run tests with:
 
 ## Project Structure
 - `src/main/java/com/ead/authuser/` - Main application code
-  - `controllers/` - REST controllers (e.g., `UserController`)
+  - `controllers/` - REST controllers (e.g., `UserController`, `AuthenticationController`)
   - `services/` - Service interfaces (e.g., `UserService`) and implementations (`impl/`)
   - `repositories/` - Spring Data JPA repositories (e.g., `UserRepository`)
-  - `models/` - Entity models (e.g., `UserModel`)
+  - `models/` - Entity models (e.g., `UserModel`, `UserCourseModel`)
   - `enums/` - Enum types (e.g., `UserStatus`, `UserType`)
+  - `configs/` - Configuration classes (e.g., `RequestLoggingFilterConfig`)
 - `src/main/resources/` - Configuration files
 - `src/test/java/com/ead/authuser/` - Test classes
+
+## Logging Features
+
+This application implements comprehensive logging using **Log4j2** for better performance and flexibility compared to the default Logback.
+
+### Log4j2 Configuration
+
+The application uses Log4j2 instead of the default Spring Boot logging:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-log4j2</artifactId>
+</dependency>
+```
+
+**Note:** The default `spring-boot-starter-logging` is excluded from `spring-boot-starter-web` to avoid conflicts.
+
+### Logging Levels
+
+Configured logging levels in `application.yml`:
+
+```yaml
+logging:
+  level:
+    com.ead: INFO
+    org.hibernate: DEBUG
+```
+
+### Request Logging
+
+The application includes a `RequestLoggingFilterConfig` that provides detailed HTTP request logging:
+
+- **Query String**: Included in logs
+- **Request Payload**: Included (up to 10,000 characters)
+- **Headers**: Included (except Authorization header for security)
+- **Response**: Logged for debugging purposes
+
+This configuration helps with debugging and monitoring API requests.
+
+### Application Logging
+
+Controllers and services include strategic logging statements:
+
+- **Debug Level**: Input parameters and method entry points
+- **Warn Level**: Business logic warnings (e.g., password mismatches)
+- **Error Level**: Exception handling and error conditions
+
+**Example Log Output:**
+```
+DEBUG - POST registerUser received userRecordDTO: UserRecordDTO[username=john_doe, email=john@example.com, ...]
+DEBUG - deleteUser received userId: 123e4567-e89b-12d3-a456-426614174000
+WARN  - mismatched old password: 123e4567-e89b-12d3-a456-426614174000
+ERROR - handleNotFoundException message: User not found with id: 123e4567-e89b-12d3-a456-426614174000
+```
+
+## API Composition
+
+The application supports **API Composition** through the `UserCourseModel` entity, enabling users to be associated with multiple courses.
+
+### UserCourseModel
+
+The `UserCourseModel` represents the relationship between users and courses:
+
+```java
+@Entity
+@Table(name = "TB_USERS_COURSES")
+public class UserCourseModel implements Serializable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
+    
+    @Column(nullable = false)
+    private String courseId;
+    
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private UserModel user;
+}
+```
+
+**Features:**
+- **Lazy Loading**: User relationship is loaded only when needed
+- **JSON Serialization**: Uses `@JsonInclude(JsonInclude.Include.NON_NULL)` for clean JSON output
+- **Database Mapping**: Maps to `TB_USERS_COURSES` table
+- **Many-to-One Relationship**: Multiple course enrollments per user
+
+### API Composition Benefits
+
+1. **Scalability**: Supports microservices architecture where course data comes from different services
+2. **Performance**: Lazy loading prevents unnecessary data fetching
+3. **Flexibility**: Easy to extend with additional course-related fields
+4. **Data Integrity**: Proper foreign key relationships maintained
 
 ## Spring HATEOAS Features
 
@@ -51,13 +144,25 @@ This application implements **Spring HATEOAS** (Hypermedia as the Engine of Appl
 3. **Hypermedia Responses**: API responses include `_links` section with navigable links.
 
 ### Dependencies
-The application includes the Spring HATEOAS starter:
+The application includes several key dependencies:
+
+**Spring HATEOAS:**
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-hateoas</artifactId>
 </dependency>
 ```
+
+**Log4j2 Logging:**
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-log4j2</artifactId>
+</dependency>
+```
+
+**Note:** The default `spring-boot-starter-logging` is excluded from `spring-boot-starter-web` to use Log4j2 instead.
 
 ### HATEOAS Response Format
 Responses from HATEOAS-enabled endpoints include a `_links` section with hypermedia links:
