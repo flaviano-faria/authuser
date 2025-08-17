@@ -41,7 +41,13 @@ public class UserController {
                     direction = Sort.Direction.ASC) Pageable pageable,
             @RequestParam (required = false) UUID courseId) {
 
-        Page<UserModel> userModelPage = userService.findAll(spec, pageable);
+        Page<UserModel> userModelPage = null;
+
+        if(courseId != null){
+            userModelPage = userService.findAll(SpecificationTemplate.userCourseId(courseId), pageable);
+        } else{
+            userModelPage = userService.findAll(spec, pageable);
+        }
 
         userModelPage.toList().stream().forEach(
                 userModel -> userModel.add(
