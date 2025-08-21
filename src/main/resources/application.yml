@@ -18,6 +18,10 @@ spring:
         jdbc:
           lob:
             non-contextual-creation: true
+ead:
+  api:
+    url:
+      course: 'http://localhost:8082/ead-course''
 
 logging:
   level:
