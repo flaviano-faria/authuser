@@ -33,7 +33,7 @@ public class CourseClient {
                 "&size=" + pageable.getPageSize() + "&sort=" + pageable.getSort().toString().replaceAll(": ",",");
 
         try {
-
+            
 
         } catch (RestClientException e) {
             logger.error("Error on rest client with cause {}", e.getMessage());
