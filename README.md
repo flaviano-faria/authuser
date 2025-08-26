@@ -1,6 +1,6 @@
 # Authuser
 
-A demo Spring Boot application for user authentication and management with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, and **API Composition** capabilities.
+A demo Spring Boot application for user authentication and management with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **API Composition** capabilities, and **microservices communication** through REST clients.
 
 ## Requirements
 - Java 21
@@ -14,6 +14,13 @@ A demo Spring Boot application for user authentication and management with **Spr
    cd authuser
    ```
 2. Configure your PostgreSQL database
+3. Configure the course service URL in `application.yml`:
+   ```yaml
+   ead:
+     api:
+       url:
+         course: http://localhost:8088/ead-course
+   ```
 
 ## Running the Application
 Use Maven to build and run the application:
@@ -30,12 +37,18 @@ Run tests with:
 
 ## Project Structure
 - `src/main/java/com/ead/authuser/` - Main application code
-  - `controllers/` - REST controllers (e.g., `UserController`, `AuthenticationController`)
+  - `controllers/` - REST controllers
+    - `AuthenticationController` - User registration endpoints
+    - `UserController` - User management endpoints with HATEOAS support
+    - `UserCourseController` - User-course relationship endpoints
+  - `clients/` - REST clients for microservices communication
+    - `CourseClient` - Client for course service communication
   - `services/` - Service interfaces (e.g., `UserService`) and implementations (`impl/`)
-  - `repositories/` - Spring Data JPA repositories (e.g., `UserRepository`)
+  - `repositories/` - Spring Data JPA repositories (e.g., `UserRepository`, `UserCourseRepository`)
   - `models/` - Entity models (e.g., `UserModel`, `UserCourseModel`)
-  - `enums/` - Enum types (e.g., `UserStatus`, `UserType`)
-  - `configs/` - Configuration classes (e.g., `RequestLoggingFilterConfig`)
+  - `enums/` - Enum types (e.g., `UserStatus`, `UserType`, `CourseStatus`, `CourseLevel`)
+  - `configs/` - Configuration classes (e.g., `RequestLoggingFilterConfig`, `RestClientConfig`)
+  - `dtos/` - Data Transfer Objects (e.g., `UserRecordDTO`, `CourseRecordDto`, `ResponsePageDto`)
 - `src/main/resources/` - Configuration files
 - `src/test/java/com/ead/authuser/` - Test classes
 
@@ -214,6 +227,7 @@ Retrieve a paginated list of all users with HATEOAS links.
 - `page` (default: 0) - Page number
 - `size` (default: 3) - Page size
 - `sort` (default: userId,ASC) - Sort field and direction
+- `courseId` (optional) - Filter users by course ID
 
 **Response Example:**
 ```json
@@ -337,6 +351,122 @@ Update a user's profile image.
 **Response:**  
 - `200 OK` with the updated user object including HATEOAS links.  
 - `404 NOT FOUND` if the user does not exist.
+
+### User-Course Endpoints
+
+#### `GET /users/{userId}/courses`
+Retrieve all courses associated with a specific user.
+
+**Query Parameters:**
+- `page` (default: 0) - Page number
+- `size` (default: 10) - Page size
+- `sort` (default: courseId,ASC) - Sort field and direction
+
+**Response Example:**
+```json
+{
+  "content": [
+    {
+      "courseId": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "Spring Boot Fundamentals",
+      "description": "Learn Spring Boot from scratch",
+      "imageUrl": "https://example.com/course-image.jpg",
+      "courseStatus": "ACTIVE",
+      "userInstructor": "456e7890-e89b-12d3-a456-426614174000",
+      "courseLevel": "BEGINNER"
+    }
+  ],
+  "page": {
+    "size": 10,
+    "totalElements": 1,
+    "totalPages": 1,
+    "number": 0
+  }
+}
+```
+
+**Response:**  
+- `200 OK` with paginated course data.
+- `500 INTERNAL SERVER ERROR` if course service communication fails.
+
+## Microservices Communication
+
+### CourseClient
+
+The application includes a `CourseClient` for communicating with the course microservice:
+
+**Features:**
+- **REST Client**: Uses Spring's `RestClient` for HTTP communication
+- **Error Handling**: Comprehensive exception handling with logging
+- **Pagination Support**: Handles paginated responses from course service
+- **Configuration**: Base URL configurable via `application.yml`
+
+**Configuration:**
+```yaml
+ead:
+  api:
+    url:
+      course: http://localhost:8088/ead-course
+```
+
+**Error Handling:**
+- Logs errors with detailed messages
+- Throws `RuntimeException` with cause for proper error propagation
+- Graceful degradation when course service is unavailable
+
+### ResponsePageDto
+
+The `ResponsePageDto` class handles paginated responses from external services:
+
+**Features:**
+- **Generic Type Support**: Works with any DTO type
+- **JSON Deserialization**: Properly deserializes paginated responses
+- **Page Metadata**: Preserves pagination information
+- **Unknown Properties**: Ignores unknown JSON properties for flexibility
+
+## Data Transfer Objects (DTOs)
+
+### CourseRecordDto
+
+Represents course data received from the course microservice:
+
+```java
+public record CourseRecordDto(
+    UUID courseId,
+    String name,
+    String description,
+    String imageUrl,
+    CourseStatus courseStatus,
+    UUID userInstructor,
+    CourseLevel courseLevel
+)
+```
+
+**Fields:**
+- `courseId` - Unique course identifier
+- `name` - Course name
+- `description` - Course description
+- `imageUrl` - Course image URL
+- `courseStatus` - Course status (ACTIVE, INACTIVE, etc.)
+- `userInstructor` - Instructor user ID
+- `courseLevel` - Course difficulty level (BEGINNER, INTERMEDIATE, ADVANCED)
+
+### ResponsePageDto
+
+Handles paginated responses from external services:
+
+```java
+public class ResponsePageDto<T> extends PageImpl<T> {
+    private final PageMetadata page;
+    // ... implementation details
+}
+```
+
+**Features:**
+- Extends Spring's `PageImpl` for compatibility
+- Custom `PageMetadata` for external service pagination
+- JSON deserialization support
+- Generic type support for different DTOs
 
 ### User Model
 The `UserModel` entity includes the following fields:
