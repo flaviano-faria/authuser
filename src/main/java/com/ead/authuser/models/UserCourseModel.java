@@ -15,6 +15,12 @@ public class UserCourseModel implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    public UserCourseModel(UUID id, UUID courseId, UserModel userModel) {
+        this.id = id;
+        this.courseId = courseId;
+        this.user = userModel;
+    }
+
     public UserModel getUser() {
         return user;
     }
@@ -24,7 +30,7 @@ public class UserCourseModel implements Serializable {
     }
 
     @Column(nullable = false)
-    private String courseId;
+    private UUID courseId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private UserModel user;
@@ -37,11 +43,11 @@ public class UserCourseModel implements Serializable {
         this.id = id;
     }
 
-    public String getCourseId() {
+    public UUID getCourseId() {
         return courseId;
     }
 
-    public void setCourseId(String courseId) {
+    public void setCourseId(UUID courseId) {
         this.courseId = courseId;
     }
 }
