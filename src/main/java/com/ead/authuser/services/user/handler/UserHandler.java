@@ -1,6 +1,6 @@
 package com.ead.authuser.services.user.handler;
 
-import com.ead.authuser.dtos.UserRecordDTO;
+import com.ead.authuser.dtos.UserRecordDto;
 import com.ead.authuser.enums.UserStatus;
 import com.ead.authuser.enums.UserType;
 import com.ead.authuser.exceptions.DuplicatedUsernameException;
@@ -19,7 +19,7 @@ public class UserHandler {
     @Autowired
     private UserRepository userRepository;
 
-    public UserModel toUserModel(UserRecordDTO userRecordDTO){
+    public UserModel toUserModel(UserRecordDto userRecordDTO){
         var userModel = new UserModel();
         BeanUtils.copyProperties(userRecordDTO, userModel);
         userModel.setUserStatus(UserStatus.ACTIVE);
@@ -29,11 +29,11 @@ public class UserHandler {
         return userModel;
     }
 
-    public void validateUserRecord(UserRecordDTO userRecordDTO){
+    public void validateUserRecord(UserRecordDto userRecordDTO){
         validateUsername(userRecordDTO);
     }
 
-    public void validateUsername(UserRecordDTO userRecordDTO){
+    public void validateUsername(UserRecordDto userRecordDTO){
         if(userRepository.existsByUsername(userRecordDTO.username())){
             throw new DuplicatedUsernameException("Username is already in use");
         }

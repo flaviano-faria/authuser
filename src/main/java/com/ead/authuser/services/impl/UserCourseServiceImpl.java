@@ -1,4 +1,4 @@
-package com.ead.authuser.services.user.impl;
+package com.ead.authuser.services.impl;
 
 import com.ead.authuser.models.UserCourseModel;
 import com.ead.authuser.models.UserModel;
@@ -20,7 +20,6 @@ public class UserCourseServiceImpl implements UserCourseService {
     @Override
     public boolean existsByUserAndCourseId(UserModel userModel, UUID courseId) {
         return userCourseRepository.existsByUserAndCourseId(userModel, courseId);
-
     }
 
     @Override

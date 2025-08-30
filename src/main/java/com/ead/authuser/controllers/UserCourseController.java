@@ -1,5 +1,6 @@
 package com.ead.authuser.controllers;
 
+
 import com.ead.authuser.clients.CourseClient;
 import com.ead.authuser.dtos.CourseRecordDto;
 import com.ead.authuser.dtos.UserCourseRecordDto;
@@ -23,7 +24,7 @@ import java.util.UUID;
 public class UserCourseController {
 
     final CourseClient courseClient;
-    final UserService  userService;
+    final UserService userService;
     final UserCourseService userCourseService;
 
     public UserCourseController(CourseClient courseClient, UserService userService, UserCourseService userCourseService) {
@@ -33,24 +34,24 @@ public class UserCourseController {
     }
 
     @GetMapping("/users/{userId}/courses")
-    public ResponseEntity<Page<CourseRecordDto>> getAllCoursesByUser(
-            @PageableDefault(sort = "courseId", direction = Sort.Direction.ASC) Pageable pageable,
-            @PathVariable(value = "userId")UUID userId){
-
+    public ResponseEntity<Page<CourseRecordDto>> getAllCoursesByUser(@PageableDefault(sort = "courseId", direction = Sort.Direction.ASC) Pageable pageable,
+                                                                     @PathVariable(value = "userId") UUID userId){
         return ResponseEntity.status(HttpStatus.OK).body(courseClient.getAllCoursesByUser(userId, pageable));
     }
 
     @PostMapping("/users/{userId}/courses/subscription")
     public ResponseEntity<Object> saveSubscriptionUserInCourse(@PathVariable(value = "userId") UUID userId,
                                                                @RequestBody @Valid UserCourseRecordDto userCourseRecordDto){
-
-        Optional<UserModel> optionalUserModel = userService.findById(userId);
-        if(userCourseService.existsByUserAndCourseId(optionalUserModel.get(),userCourseRecordDto.courseId())){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("subscription already exists");
+        Optional<UserModel> userModelOptional = userService.findById(userId);
+        if(userCourseService.existsByUserAndCourseId(userModelOptional.get(), userCourseRecordDto.courseId())){
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Error: Subscription already exists!");
         }
-
-        UserCourseModel userCourseModel = userCourseService.save(
-                optionalUserModel.get().convertToUserModel(userCourseRecordDto.courseId()));
+        UserCourseModel userCourseModel =
+                userCourseService.save(userModelOptional.get().convertToUserCourseModel(userCourseRecordDto.courseId()));
         return ResponseEntity.status(HttpStatus.CREATED).body(userCourseModel);
     }
+
+
+
+
 }

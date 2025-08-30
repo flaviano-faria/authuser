@@ -16,8 +16,7 @@ public class ResponsePageDto<T> extends PageImpl<T> {
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public ResponsePageDto(@JsonProperty("content") List<T> content,
                            @JsonProperty("page") PageMetadata page) {
-        super(content, PageRequest.of(page.getNumber(),
-                page.getSize()), page.getTotalElements());
+        super(content, PageRequest.of(page.getNumber(), page.getSize()), page.getTotalElements());
         this.page = page;
     }
 
@@ -27,19 +26,17 @@ public class ResponsePageDto<T> extends PageImpl<T> {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class PageMetadata {
+
         private final int size;
-        private final int totalElements;
+        private final long totalElements;
         private final int totalPages;
         private final int number;
 
         @JsonCreator
-
-        public PageMetadata(
-                @JsonProperty("size") int size,
-                @JsonProperty("totalElements") int totalElements,
-                @JsonProperty("totalPages") int totalPages,
-                @JsonProperty("number") int number
-        ) {
+        public PageMetadata(@JsonProperty("size") int size,
+                            @JsonProperty("totalElements") long totalElements,
+                            @JsonProperty("totalPages") int totalPages,
+                            @JsonProperty("number") int number) {
             this.size = size;
             this.totalElements = totalElements;
             this.totalPages = totalPages;
@@ -50,7 +47,7 @@ public class ResponsePageDto<T> extends PageImpl<T> {
             return size;
         }
 
-        public int getTotalElements() {
+        public long getTotalElements() {
             return totalElements;
         }
 
@@ -62,4 +59,5 @@ public class ResponsePageDto<T> extends PageImpl<T> {
             return number;
         }
     }
+
 }

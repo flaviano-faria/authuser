@@ -9,13 +9,11 @@ import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record CourseRecordDto(
-        UUID courseId,
-        String name,
-        String description,
-        String imageUrl,
-        CourseStatus courseStatus,
-        UUID userInstructor,
-        CourseLevel courseLevel
-) {
+public record CourseRecordDto(UUID courseId,
+                              String name,
+                              String description,
+                              String imageUrl,
+                              CourseStatus courseStatus,
+                              UUID userInstructor,
+                              CourseLevel courseLevel) {
 }

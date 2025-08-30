@@ -1,15 +1,13 @@
-package com.ead.authuser.services.user.impl;
+package com.ead.authuser.services.impl;
 
-import com.ead.authuser.dtos.UserRecordDTO;
+import com.ead.authuser.dtos.UserRecordDto;
 import com.ead.authuser.enums.UserStatus;
 import com.ead.authuser.enums.UserType;
 import com.ead.authuser.exceptions.NotFoundException;
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.repositories.UserRepository;
 import com.ead.authuser.services.UserService;
-import com.ead.authuser.services.user.handler.UserHandler;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -26,9 +24,6 @@ public class UserServiceImpl implements UserService {
 
     final UserRepository userRepository;
 
-    @Autowired
-    private UserHandler userHandler;
-
     public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
@@ -42,7 +37,7 @@ public class UserServiceImpl implements UserService {
     public Optional<UserModel> findById(UUID userId) {
         Optional<UserModel> userModelOptional = userRepository.findById(userId);
         if(userModelOptional.isEmpty()){
-            throw new NotFoundException("Error: User not found");
+            throw new NotFoundException("Error: User not found.");
         }
         return userModelOptional;
     }
@@ -53,30 +48,44 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserModel registeruser(UserRecordDTO userRecordDTO) {
-       userHandler.validateUserRecord(userRecordDTO);
-       UserModel userModel = userHandler.toUserModel(userRecordDTO);
-        return userRepository.save(userModel);
-    }
-
-    @Override
-    public UserModel updateUser(UserRecordDTO userRecordDTO, UserModel userModel) {
-        userModel.setPhoneNumber(userRecordDTO.phoneNumber());
-        userModel.setFullName(userRecordDTO.fullName());
+    public UserModel registerUser(UserRecordDto userRecordDto) {
+        var userModel = new UserModel();
+        BeanUtils.copyProperties(userRecordDto, userModel);
+        userModel.setUserStatus(UserStatus.ACTIVE);
+        userModel.setUserType(UserType.USER);
+        userModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
         userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
         return userRepository.save(userModel);
     }
 
     @Override
-    public UserModel updatePassword(UserRecordDTO userRecordDTO, UserModel userModel) {
-        userModel.setPassword(userRecordDTO.password());
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    public UserModel updateUser(UserRecordDto userRecordDto, UserModel userModel) {
+        userModel.setFullName(userRecordDto.fullName());
+        userModel.setPhoneNumber(userRecordDto.phoneNumber());
         userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
         return userRepository.save(userModel);
     }
 
     @Override
-    public UserModel updateImage(UserRecordDTO userRecordDTO, UserModel userModel) {
-        userModel.setImageUrl(userRecordDTO.imageUrl());
+    public UserModel updatePassword(UserRecordDto userRecordDto, UserModel userModel) {
+        userModel.setPassword(userRecordDto.password());
+        userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        return userRepository.save(userModel);
+    }
+
+    @Override
+    public UserModel updateImage(UserRecordDto userRecordDto, UserModel userModel) {
+        userModel.setImageUrl(userRecordDto.imageUrl());
         userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
         return userRepository.save(userModel);
     }
@@ -84,5 +93,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<UserModel> findAll(Specification<UserModel> spec, Pageable pageable) {
         return userRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    public UserModel registerInstructor(UserModel userModel) {
+        userModel.setUserType(UserType.INSTRUCTOR);
+        userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        return userRepository.save(userModel);
     }
 }

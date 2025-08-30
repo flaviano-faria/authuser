@@ -18,20 +18,21 @@ import java.util.UUID;
 @Entity
 @Table(name = "TB_USERS")
 public class UserModel extends RepresentationModel<UserModel> implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID userId;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, unique = true, length = 50)
     private String username;
 
-    @JsonIgnore
-    @Column(unique = true, nullable = false, length = 50)
-    private String password;
-
-    @Column(unique = true, nullable = false, length = 50)
+    @Column(nullable = false, unique = true, length = 50)
     private String email;
+
+    @JsonIgnore
+    @Column(nullable = false, length = 20)
+    private String password;
 
     @Column(nullable = false, length = 150)
     private String fullName;
@@ -50,29 +51,22 @@ public class UserModel extends RepresentationModel<UserModel> implements Seriali
     @Column(length = 255)
     private String imageUrl;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
+//    @JsonFormat(shape = JsonFormat.Shape.STRING,pattern = "dd-MM-yyyy HH:mm:ss")
     @Column(nullable = false)
     private LocalDateTime creationDate;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
+//    @JsonFormat(shape = JsonFormat.Shape.STRING,pattern = "dd-MM-yyyy HH:mm:ss")
     @Column(nullable = false)
     private LocalDateTime lastUpdateDate;
 
-    public UserCourseModel convertToUserModel(UUID courseId) {
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private Set<UserCourseModel> usersCourses;
+
+    public UserCourseModel convertToUserCourseModel(UUID courseId){
         return new UserCourseModel(null, courseId, this);
     }
 
-    public Set<UserCourseModel> getUserCourses() {
-        return userCourses;
-    }
-
-    public void setUserCourses(Set<UserCourseModel> userCourses) {
-        this.userCourses = userCourses;
-    }
-
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private Set<UserCourseModel> userCourses;
 
     public UUID getUserId() {
         return userId;
@@ -90,20 +84,20 @@ public class UserModel extends RepresentationModel<UserModel> implements Seriali
         this.username = username;
     }
 
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getFullName() {
@@ -160,5 +154,13 @@ public class UserModel extends RepresentationModel<UserModel> implements Seriali
 
     public void setLastUpdateDate(LocalDateTime lastUpdateDate) {
         this.lastUpdateDate = lastUpdateDate;
+    }
+
+    public Set<UserCourseModel> getUsersCourses() {
+        return usersCourses;
+    }
+
+    public void setUsersCourses(Set<UserCourseModel> usersCourses) {
+        this.usersCourses = usersCourses;
     }
 }
