@@ -43,4 +43,22 @@ public class CourseClient {
             throw new RuntimeException("Error rest client", e);
         }
     }
+
+    public void deleteUserCourseInCourse(UUID userId){
+        String url =   baseUrlCourse + "/courses/users/" + userId;
+        logger.debug("Request URL: {} ", url);
+
+        try{
+            restClient.delete()
+                    .uri(url)
+                    .retrieve()
+                    .toBodilessEntity();
+        }catch (RestClientException e){
+            logger.error("Error Request DELETE RestClient with cause: {} ", e.getMessage());
+            throw new RuntimeException("Error Request DELETE RestClient", e);
+        }
+    }
+
+
+
 }
