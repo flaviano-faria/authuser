@@ -41,14 +41,15 @@ Run tests with:
     - `AuthenticationController` - User registration endpoints
     - `UserController` - User management endpoints with HATEOAS support
     - `UserCourseController` - User-course relationship endpoints
+    - `InstructorController` - Instructor subscription endpoints
   - `clients/` - REST clients for microservices communication
     - `CourseClient` - Client for course service communication
-  - `services/` - Service interfaces (e.g., `UserService`) and implementations (`impl/`)
+  - `services/` - Service interfaces (e.g., `UserService`, `UserCourseService`) and implementations (`impl/`)
   - `repositories/` - Spring Data JPA repositories (e.g., `UserRepository`, `UserCourseRepository`)
   - `models/` - Entity models (e.g., `UserModel`, `UserCourseModel`)
   - `enums/` - Enum types (e.g., `UserStatus`, `UserType`, `CourseStatus`, `CourseLevel`)
   - `configs/` - Configuration classes (e.g., `RequestLoggingFilterConfig`, `RestClientConfig`)
-  - `dtos/` - Data Transfer Objects (e.g., `UserRecordDTO`, `CourseRecordDto`, `ResponsePageDto`)
+  - `dtos/` - Data Transfer Objects (e.g., `UserRecordDTO`, `CourseRecordDto`, `ResponsePageDto`, `InstructorRecordDto`, `UserCourseRecordDto`)
 - `src/main/resources/` - Configuration files
 - `src/test/java/com/ead/authuser/` - Test classes
 
@@ -389,6 +390,45 @@ Retrieve all courses associated with a specific user.
 - `200 OK` with paginated course data.
 - `500 INTERNAL SERVER ERROR` if course service communication fails.
 
+#### `POST /users/{userId}/courses/subscription`
+Subscribe a user to a course.
+
+**Request Body:**
+```json
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "courseId": "456e7890-e89b-12d3-a456-426614174000"
+}
+```
+
+**Response:**  
+- `201 CREATED` with the created user-course subscription object.
+- `409 CONFLICT` if the subscription already exists.
+- `404 NOT FOUND` if the user does not exist.
+
+#### `DELETE /users/courses/{courseId}`
+Delete all user-course subscriptions for a specific course.
+
+**Response:**  
+- `200 OK` if deleted successfully.
+- `404 NOT FOUND` if no user-course subscriptions exist for the course.
+
+### Instructor Endpoints
+
+#### `POST /instructors/subscription`
+Register a user as an instructor.
+
+**Request Body:**
+```json
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+**Response:**  
+- `200 OK` with the updated user object (now with INSTRUCTOR user type).
+- `404 NOT FOUND` if the user does not exist.
+
 ## Microservices Communication
 
 ### CourseClient
@@ -400,6 +440,7 @@ The application includes a `CourseClient` for communicating with the course micr
 - **Error Handling**: Comprehensive exception handling with logging
 - **Pagination Support**: Handles paginated responses from course service
 - **Configuration**: Base URL configurable via `application.yml`
+- **Course Deletion**: Supports deleting user-course relationships in the course service
 
 **Configuration:**
 ```yaml
@@ -425,6 +466,34 @@ The `ResponsePageDto` class handles paginated responses from external services:
 - **Unknown Properties**: Ignores unknown JSON properties for flexibility
 
 ## Data Transfer Objects (DTOs)
+
+### InstructorRecordDto
+
+Represents instructor subscription data:
+
+```java
+public record InstructorRecordDto(
+    @NotNull(message = "UserId is mandatory") UUID userId
+)
+```
+
+**Fields:**
+- `userId` - Unique user identifier to be registered as instructor
+
+### UserCourseRecordDto
+
+Represents user-course subscription data:
+
+```java
+public record UserCourseRecordDto(
+    UUID userId,
+    @NotNull(message = "CourseId is mandatory") UUID courseId
+)
+```
+
+**Fields:**
+- `userId` - User identifier (optional in request body)
+- `courseId` - Course identifier to subscribe to
 
 ### CourseRecordDto
 
@@ -467,6 +536,56 @@ public class ResponsePageDto<T> extends PageImpl<T> {
 - Custom `PageMetadata` for external service pagination
 - JSON deserialization support
 - Generic type support for different DTOs
+
+### Service Layer Methods
+
+#### UserService
+The `UserService` interface includes the following key methods:
+
+**New Methods:**
+- `registerInstructor(UserModel userModel)` - Registers a user as an instructor by updating their user type to INSTRUCTOR
+
+**Existing Methods:**
+- `findAll()` - Retrieve all users
+- `findById(UUID userId)` - Find user by ID (throws NotFoundException if not found)
+- `delete(UserModel userModel)` - Delete user and associated course subscriptions
+- `registerUser(UserRecordDto userRecordDto)` - Register a new user
+- `existsByUsername(String username)` - Check if username exists
+- `existsByEmail(String email)` - Check if email exists
+- `updateUser(UserRecordDto userRecordDto, UserModel userModel)` - Update user information
+- `updatePassword(UserRecordDto userRecordDto, UserModel userModel)` - Update user password
+- `updateImage(UserRecordDto userRecordDto, UserModel userModel)` - Update user profile image
+- `findAll(Specification<UserModel> spec, Pageable pageable)` - Find users with specifications and pagination
+
+#### UserCourseService
+The `UserCourseService` interface manages user-course relationships:
+
+**Methods:**
+- `existsByUserAndCourseId(UserModel userModel, UUID courseId)` - Check if user-course subscription exists
+- `save(UserCourseModel userCourseModel)` - Save user-course subscription
+- `existsByCourseId(UUID courseId)` - Check if any user-course subscriptions exist for a course
+- `deleteAllByCourseId(UUID courseId)` - Delete all user-course subscriptions for a specific course
+
+### Repository Layer Methods
+
+#### UserRepository
+The `UserRepository` extends `JpaRepository` and `JpaSpecificationExecutor`:
+
+**Methods:**
+- `existsByUsername(String username)` - Check if username exists
+- `existsByEmail(String email)` - Check if email exists
+- Standard JPA methods: `findAll()`, `findById()`, `save()`, `delete()`, etc.
+- Specification support for dynamic queries
+
+#### UserCourseRepository
+The `UserCourseRepository` manages user-course relationship data:
+
+**Methods:**
+- `existsByUserAndCourseId(UserModel userModel, UUID courseId)` - Check if specific user-course subscription exists
+- `findAllUserCourseIntoUser(UUID userId)` - Find all course subscriptions for a specific user (native query)
+- `existsByCourseId(UUID courseId)` - Check if any subscriptions exist for a course
+- `deleteAllByCourseId(UUID courseId)` - Delete all subscriptions for a specific course
+- Standard JPA methods: `save()`, `delete()`, etc.
 
 ### User Model
 The `UserModel` entity includes the following fields:
