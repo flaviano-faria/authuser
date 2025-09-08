@@ -18,12 +18,21 @@ spring:
         jdbc:
           lob:
             non-contextual-creation: true
+  application:
+    name: ead-authuser-service
 ead:
   api:
     url:
-      course: 'http://localhost:8082/ead-course''
+      course: 'http://localhost:8082/ead-authuser'
 
 logging:
   level:
     com.ead: INFO
     org.hibernate: DEBUG
+
+eureka:
+  client:
+    service-url:
+      defaultZone: 'http://localhost:8761/eureka'
+  instance:
+    hostname: localhost
