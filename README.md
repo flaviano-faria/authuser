@@ -1,11 +1,12 @@
 # Authuser
 
-A demo Spring Boot application for user authentication and management with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **API Composition** capabilities, and **microservices communication** through REST clients.
+A demo Spring Boot application for user authentication and management with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **API Composition** capabilities, **microservices communication** through REST clients, and **Eureka service discovery** for dynamic service registration and discovery.
 
 ## Requirements
 - Java 21
 - Maven
 - PostgreSQL
+- Eureka Server (for service discovery)
 
 ## Setup
 1. Clone the repository:
@@ -14,12 +15,20 @@ A demo Spring Boot application for user authentication and management with **Spr
    cd authuser
    ```
 2. Configure your PostgreSQL database
-3. Configure the course service URL in `application.yml`:
+3. Start the Eureka Server (typically on port 8761)
+4. Configure the course service URL and Eureka settings in `application.yml`:
    ```yaml
    ead:
      api:
        url:
-         course: http://localhost:8088/ead-course
+         course: http://localhost:8082/ead-course
+   
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://localhost:8761/eureka
+     instance:
+       hostname: localhost
    ```
 
 ## Running the Application
@@ -28,6 +37,62 @@ Use Maven to build and run the application:
 ./mvnw spring-boot:run
 ```
 The application will start on [http://localhost:8087/ead-authuser/](http://localhost:8087/ead-authuser/).
+
+## Application Configuration
+
+### Database Configuration
+The application uses PostgreSQL as the primary database:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ead-authuser
+    username: postgres
+    password: banco123
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show-sql: true
+```
+
+### Service Discovery Configuration
+Eureka client configuration for service registration and discovery:
+
+```yaml
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    hostname: localhost
+
+spring:
+  application:
+    name: ead-authuser-service
+```
+
+### External Service Configuration
+Course service communication settings:
+
+```yaml
+ead:
+  api:
+    url:
+      course: http://localhost:8082/ead-course
+```
+
+### Logging Configuration
+Comprehensive logging setup with Log4j2:
+
+```yaml
+logging:
+  level:
+    com.ead: INFO
+    org.hibernate: DEBUG
+```
 
 ## Testing
 Run tests with:
@@ -49,6 +114,9 @@ Run tests with:
   - `models/` - Entity models (e.g., `UserModel`, `UserCourseModel`)
   - `enums/` - Enum types (e.g., `UserStatus`, `UserType`, `CourseStatus`, `CourseLevel`)
   - `configs/` - Configuration classes (e.g., `RequestLoggingFilterConfig`, `RestClientConfig`)
+  - `specifications/` - JPA Specification classes for dynamic queries
+  - `validations/` - Custom validation classes and constraints
+  - `exceptions/` - Custom exception classes and global exception handling
   - `dtos/` - Data Transfer Objects (e.g., `UserRecordDTO`, `CourseRecordDto`, `ResponsePageDto`, `InstructorRecordDto`, `UserCourseRecordDto`)
 - `src/main/resources/` - Configuration files
 - `src/test/java/com/ead/authuser/` - Test classes
@@ -173,6 +241,14 @@ The application includes several key dependencies:
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-log4j2</artifactId>
+</dependency>
+```
+
+**Eureka Client:**
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 </dependency>
 ```
 
@@ -454,6 +530,77 @@ ead:
 - Logs errors with detailed messages
 - Throws `RuntimeException` with cause for proper error propagation
 - Graceful degradation when course service is unavailable
+
+## Eureka Service Discovery
+
+This application integrates with **Netflix Eureka** for service discovery, enabling dynamic service registration and discovery in a microservices architecture.
+
+### Eureka Client Configuration
+
+The application is configured as a Eureka client that registers itself with the Eureka server:
+
+```yaml
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    hostname: localhost
+```
+
+### Service Registration
+
+**Service Name:** `ead-authuser-service`
+
+The application automatically registers itself with the Eureka server using the service name defined in `application.yml`:
+
+```yaml
+spring:
+  application:
+    name: ead-authuser-service
+```
+
+### Eureka Client Features
+
+1. **Automatic Registration**: The service automatically registers itself with Eureka on startup
+2. **Health Checks**: Eureka monitors the service health and availability
+3. **Service Discovery**: Other services can discover this service through Eureka
+4. **Load Balancing**: Eureka provides client-side load balancing capabilities
+5. **Fault Tolerance**: Automatic service instance replacement when instances become unavailable
+
+### Dependencies
+
+The application includes the Eureka client dependency:
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+</dependency>
+```
+
+### Service Discovery Benefits
+
+1. **Dynamic Service Location**: Services can be discovered dynamically without hardcoded URLs
+2. **Load Balancing**: Automatic load balancing across multiple service instances
+3. **Fault Tolerance**: Automatic failover to healthy service instances
+4. **Scalability**: Easy horizontal scaling of service instances
+5. **Centralized Service Registry**: Single point of truth for all service locations
+
+### Eureka Dashboard
+
+Access the Eureka dashboard at `http://localhost:8761` to:
+- View registered services
+- Monitor service health
+- See service instances and their status
+- Manage service registrations
+
+### Service Communication with Eureka
+
+When communicating with other services, the application can use:
+- **Service Discovery**: Look up services by name instead of hardcoded URLs
+- **Load Balancing**: Automatically distribute requests across multiple instances
+- **Circuit Breaker**: Implement fault tolerance patterns
 
 ### ResponsePageDto
 
