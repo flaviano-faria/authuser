@@ -38,6 +38,12 @@ Use Maven to build and run the application:
 ```
 The application will start on [http://localhost:8087/ead-authuser/](http://localhost:8087/ead-authuser/).
 
+## Start application with maven
+Use the following command:
+```bash
+mvn spring-boot:run -DSpring-boot.run.arguments=--server.port=8085
+```
+
 ## Application Configuration
 
 ### Database Configuration
