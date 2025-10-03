@@ -1,6 +1,6 @@
-# Authuser
+# Authuser Service
 
-A demo Spring Boot application for user authentication and management with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **API Composition** capabilities, **microservices communication** through REST clients, and **Eureka service discovery** for dynamic service registration and discovery.
+A comprehensive Spring Boot microservice for user authentication and management built with modern Java technologies. This service provides **user registration**, **authentication**, **user management**, and **instructor registration** capabilities with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **microservices communication** through REST clients, **Eureka service discovery** for dynamic service registration, and **AMQP messaging** support.
 
 ## Requirements
 - Java 21
@@ -14,19 +14,19 @@ A demo Spring Boot application for user authentication and management with **Spr
    git clone <repo-url>
    cd authuser
    ```
-2. Configure your PostgreSQL database
+2. Configure your PostgreSQL database (default database: `ead-authuser-v2`)
 3. Start the Eureka Server (typically on port 8761)
 4. Configure the course service URL and Eureka settings in `application.yml`:
    ```yaml
    ead:
      api:
        url:
-         course: http://localhost:8082/ead-course
+         course: 'http://ead-course-service/ead-course'
    
    eureka:
      client:
        service-url:
-         defaultZone: http://localhost:8761/eureka
+         defaultZone: 'http://localhost:8761/eureka'
      instance:
        hostname: localhost
    ```
@@ -52,16 +52,19 @@ The application uses PostgreSQL as the primary database:
 ```yaml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ead-authuser
+    url: jdbc:postgresql://localhost:5432/ead-authuser-v2
     username: postgres
     password: banco123
   jpa:
+    show-sql: true
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        show-sql: true
+        jdbc:
+          lob:
+            non-contextual-creation: true
 ```
 
 ### Service Discovery Configuration
@@ -87,7 +90,7 @@ Course service communication settings:
 ead:
   api:
     url:
-      course: http://localhost:8082/ead-course
+      course: 'http://ead-course-service/ead-course'
 ```
 
 ### Logging Configuration
@@ -109,22 +112,49 @@ Run tests with:
 ## Project Structure
 - `src/main/java/com/ead/authuser/` - Main application code
   - `controllers/` - REST controllers
-    - `AuthenticationController` - User registration endpoints
+    - `AuthenticationController` - User registration and authentication endpoints
     - `UserController` - User management endpoints with HATEOAS support
-    - `UserCourseController` - User-course relationship endpoints
+    - `UserCourseController` - User-course relationship endpoints (read-only)
     - `InstructorController` - Instructor subscription endpoints
   - `clients/` - REST clients for microservices communication
     - `CourseClient` - Client for course service communication
-  - `services/` - Service interfaces (e.g., `UserService`, `UserCourseService`) and implementations (`impl/`)
-  - `repositories/` - Spring Data JPA repositories (e.g., `UserRepository`, `UserCourseRepository`)
-  - `models/` - Entity models (e.g., `UserModel`, `UserCourseModel`)
-  - `enums/` - Enum types (e.g., `UserStatus`, `UserType`, `CourseStatus`, `CourseLevel`)
-  - `configs/` - Configuration classes (e.g., `RequestLoggingFilterConfig`, `RestClientConfig`)
+  - `services/` - Service interfaces and implementations
+    - `UserService` - User management service interface
+    - `impl/` - Service implementations
+    - `user/handler/` - User-specific handlers
+  - `repositories/` - Spring Data JPA repositories
+    - `UserRepository` - User data access layer
+  - `models/` - Entity models
+    - `UserModel` - User entity with HATEOAS support
+  - `enums/` - Enum types
+    - `UserStatus` - User status enumeration (ACTIVE, BLOCKED)
+    - `UserType` - User type enumeration (ADMIN, USER, STUDENT, INSTRUCTOR)
+    - `CourseStatus` - Course status enumeration (IN_PROGRESS, CONCLUDED)
+    - `CourseLevel` - Course level enumeration (BEGINNER, INTERMEDIATE, ADVANCED)
+  - `configs/` - Configuration classes
+    - `RequestLoggingFilterConfig` - HTTP request logging configuration
+    - `RestClientConfig` - REST client configuration
+    - `DateConfig` - Date/time configuration
+    - `ResolverConfig` - Specification argument resolver configuration
   - `specifications/` - JPA Specification classes for dynamic queries
+    - `SpecificationTemplate` - Template for user specifications
   - `validations/` - Custom validation classes and constraints
+    - `UserValidator` - Custom user validation logic
+    - `PasswordConstraint` - Password validation constraint
+    - `PaswordConstraintImpl` - Password constraint implementation
   - `exceptions/` - Custom exception classes and global exception handling
-  - `dtos/` - Data Transfer Objects (e.g., `UserRecordDTO`, `CourseRecordDto`, `ResponsePageDto`, `InstructorRecordDto`, `UserCourseRecordDto`)
+    - `GlobalExceptionHandler` - Global exception handling
+    - `NotFoundException` - Resource not found exception
+    - `DuplicatedUsernameException` - Username conflict exception
+    - `ErrorRecordResponse` - Error response DTO
+    - `ErrorResponse` - Error response structure
+  - `dtos/` - Data Transfer Objects
+    - `UserRecordDto` - User data transfer object with validation groups
+    - `CourseRecordDto` - Course data transfer object
+    - `InstructorRecordDto` - Instructor subscription DTO
+    - `ResponsePageDto` - Paginated response DTO
 - `src/main/resources/` - Configuration files
+  - `application.yml` - Application configuration
 - `src/test/java/com/ead/authuser/` - Test classes
 
 ## Logging Features
@@ -182,42 +212,6 @@ WARN  - mismatched old password: 123e4567-e89b-12d3-a456-426614174000
 ERROR - handleNotFoundException message: User not found with id: 123e4567-e89b-12d3-a456-426614174000
 ```
 
-## API Composition
-
-The application supports **API Composition** through the `UserCourseModel` entity, enabling users to be associated with multiple courses.
-
-### UserCourseModel
-
-The `UserCourseModel` represents the relationship between users and courses:
-
-```java
-@Entity
-@Table(name = "TB_USERS_COURSES")
-public class UserCourseModel implements Serializable {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
-    
-    @Column(nullable = false)
-    private String courseId;
-    
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private UserModel user;
-}
-```
-
-**Features:**
-- **Lazy Loading**: User relationship is loaded only when needed
-- **JSON Serialization**: Uses `@JsonInclude(JsonInclude.Include.NON_NULL)` for clean JSON output
-- **Database Mapping**: Maps to `TB_USERS_COURSES` table
-- **Many-to-One Relationship**: Multiple course enrollments per user
-
-### API Composition Benefits
-
-1. **Scalability**: Supports microservices architecture where course data comes from different services
-2. **Performance**: Lazy loading prevents unnecessary data fetching
-3. **Flexibility**: Easy to extend with additional course-related fields
-4. **Data Integrity**: Proper foreign key relationships maintained
 
 ## Spring HATEOAS Features
 
@@ -233,6 +227,28 @@ This application implements **Spring HATEOAS** (Hypermedia as the Engine of Appl
 
 ### Dependencies
 The application includes several key dependencies:
+
+**Core Spring Boot Dependencies:**
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+    <exclusions>
+        <exclusion>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
 
 **Spring HATEOAS:**
 ```xml
@@ -255,6 +271,34 @@ The application includes several key dependencies:
 <dependency>
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    <version>4.3.0</version>
+</dependency>
+```
+
+**AMQP Messaging:**
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
+```
+
+**Database:**
+```xml
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>42.7.6</version>
+    <scope>runtime</scope>
+</dependency>
+```
+
+**Specification Support:**
+```xml
+<dependency>
+    <groupId>net.kaczmarzyk</groupId>
+    <artifactId>specification-arg-resolver</artifactId>
+    <version>3.1.0</version>
 </dependency>
 ```
 
@@ -472,28 +516,6 @@ Retrieve all courses associated with a specific user.
 - `200 OK` with paginated course data.
 - `500 INTERNAL SERVER ERROR` if course service communication fails.
 
-#### `POST /users/{userId}/courses/subscription`
-Subscribe a user to a course.
-
-**Request Body:**
-```json
-{
-  "userId": "123e4567-e89b-12d3-a456-426614174000",
-  "courseId": "456e7890-e89b-12d3-a456-426614174000"
-}
-```
-
-**Response:**  
-- `201 CREATED` with the created user-course subscription object.
-- `409 CONFLICT` if the subscription already exists.
-- `404 NOT FOUND` if the user does not exist.
-
-#### `DELETE /users/courses/{courseId}`
-Delete all user-course subscriptions for a specific course.
-
-**Response:**  
-- `200 OK` if deleted successfully.
-- `404 NOT FOUND` if no user-course subscriptions exist for the course.
 
 ### Instructor Endpoints
 
@@ -536,6 +558,21 @@ ead:
 - Logs errors with detailed messages
 - Throws `RuntimeException` with cause for proper error propagation
 - Graceful degradation when course service is unavailable
+
+## AMQP Messaging Support
+
+This application includes **AMQP (Advanced Message Queuing Protocol)** support through Spring Boot's `spring-boot-starter-amqp`, enabling asynchronous messaging capabilities for microservices communication.
+
+### AMQP Features
+
+- **Message Queuing**: Support for reliable message queuing and delivery
+- **Asynchronous Communication**: Decoupled communication between microservices
+- **Event-Driven Architecture**: Support for event-driven patterns
+- **Message Routing**: Flexible message routing and distribution
+
+### Configuration
+
+The AMQP starter is included in the dependencies but requires additional configuration in `application.yml` for specific messaging brokers (RabbitMQ, Apache Kafka, etc.).
 
 ## Eureka Service Discovery
 
