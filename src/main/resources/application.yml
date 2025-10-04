@@ -36,3 +36,6 @@ eureka:
       defaultZone: 'http://localhost:8761/eureka'
   instance:
     hostname: localhost
+
+  rabbitmq:
+    addresses: amqps://sjpxcsel:kzk4tvnpJ3NxleUrF9t3j6k2Q7vvGgVA@beaver.rmq.cloudamqp.com/sjpxcsel
