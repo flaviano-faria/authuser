@@ -7,6 +7,7 @@ A comprehensive Spring Boot microservice for user authentication and management 
 - Maven
 - PostgreSQL
 - Eureka Server (for service discovery)
+- RabbitMQ (CloudAMQP or local instance)
 
 ## Setup
 1. Clone the repository:
@@ -16,12 +17,20 @@ A comprehensive Spring Boot microservice for user authentication and management 
    ```
 2. Configure your PostgreSQL database (default database: `ead-authuser-v2`)
 3. Start the Eureka Server (typically on port 8761)
-4. Configure the course service URL and Eureka settings in `application.yml`:
+4. Set up RabbitMQ (CloudAMQP or local instance)
+5. Configure the course service URL, RabbitMQ, and Eureka settings in `application.yml`:
    ```yaml
    ead:
      api:
        url:
          course: 'http://ead-course-service/ead-course'
+     broker:
+       exchange:
+         userEvent: ead.userevent
+   
+   spring:
+     rabbitmq:
+       addresses: amqps://username:password@beaver.rmq.cloudamqp.com/vhost
    
    eureka:
      client:
@@ -91,6 +100,18 @@ ead:
   api:
     url:
       course: 'http://ead-course-service/ead-course'
+  broker:
+    exchange:
+      userEvent: ead.userevent
+```
+
+### RabbitMQ Configuration
+Message broker configuration for event-driven communication:
+
+```yaml
+spring:
+  rabbitmq:
+    addresses: amqps://username:password@beaver.rmq.cloudamqp.com/vhost
 ```
 
 ### Logging Configuration
@@ -118,6 +139,8 @@ Run tests with:
     - `InstructorController` - Instructor subscription endpoints
   - `clients/` - REST clients for microservices communication
     - `CourseClient` - Client for course service communication
+  - `publishers/` - Message publishers for event-driven communication
+    - `UserEventPublisher` - Publishes user lifecycle events to RabbitMQ
   - `services/` - Service interfaces and implementations
     - `UserService` - User management service interface
     - `impl/` - Service implementations
@@ -136,6 +159,7 @@ Run tests with:
     - `RestClientConfig` - REST client configuration
     - `DateConfig` - Date/time configuration
     - `ResolverConfig` - Specification argument resolver configuration
+    - `RabbitmqConfig` - RabbitMQ configuration and message converter setup
   - `specifications/` - JPA Specification classes for dynamic queries
     - `SpecificationTemplate` - Template for user specifications
   - `validations/` - Custom validation classes and constraints
@@ -153,6 +177,7 @@ Run tests with:
     - `CourseRecordDto` - Course data transfer object
     - `InstructorRecordDto` - Instructor subscription DTO
     - `ResponsePageDto` - Paginated response DTO
+    - `UserEventDto` - User event message payload for RabbitMQ
 - `src/main/resources/` - Configuration files
   - `application.yml` - Application configuration
 - `src/test/java/com/ead/authuser/` - Test classes
@@ -559,20 +584,269 @@ ead:
 - Throws `RuntimeException` with cause for proper error propagation
 - Graceful degradation when course service is unavailable
 
-## AMQP Messaging Support
+## RabbitMQ Messaging Support
 
-This application includes **AMQP (Advanced Message Queuing Protocol)** support through Spring Boot's `spring-boot-starter-amqp`, enabling asynchronous messaging capabilities for microservices communication.
+This application includes **RabbitMQ** support through Spring Boot's `spring-boot-starter-amqp`, enabling asynchronous messaging capabilities for microservices communication using the **Advanced Message Queuing Protocol (AMQP)**.
 
-### AMQP Features
+### RabbitMQ Features
 
-- **Message Queuing**: Support for reliable message queuing and delivery
-- **Asynchronous Communication**: Decoupled communication between microservices
-- **Event-Driven Architecture**: Support for event-driven patterns
-- **Message Routing**: Flexible message routing and distribution
+- **Message Queuing**: Reliable message queuing and delivery with acknowledgments
+- **Event-Driven Architecture**: Asynchronous event publishing for user lifecycle events
+- **Fanout Exchange**: Broadcasting user events to multiple consumers
+- **JSON Message Serialization**: Automatic JSON conversion for message payloads
+- **Cloud Integration**: Support for cloud-hosted RabbitMQ instances (CloudAMQP)
 
-### Configuration
+### Architecture Overview
 
-The AMQP starter is included in the dependencies but requires additional configuration in `application.yml` for specific messaging brokers (RabbitMQ, Apache Kafka, etc.).
+The application implements an **event-driven architecture** where user lifecycle events are published to RabbitMQ for consumption by other microservices:
+
+```
+Authuser Service → RabbitMQ → Other Microservices
+     (Publisher)    (Broker)     (Consumers)
+```
+
+### RabbitMQ Configuration
+
+#### CloudAMQP Integration
+The application is configured to use **CloudAMQP** for managed RabbitMQ hosting:
+
+```yaml
+spring:
+  rabbitmq:
+    addresses: amqps://username:password@beaver.rmq.cloudamqp.com/vhost
+```
+
+#### Exchange Configuration
+```yaml
+ead:
+  broker:
+    exchange:
+      userEvent: ead.userevent
+```
+
+### RabbitMQ Components
+
+#### 1. RabbitmqConfig
+The main configuration class that sets up RabbitMQ components:
+
+```java
+@Configuration
+public class RabbitmqConfig {
+    
+    @Bean
+    public RabbitTemplate rabbitTemplate() {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(cachingConnectionFactory);
+        rabbitTemplate.setMessageConverter(messageConverter());
+        return rabbitTemplate;
+    }
+    
+    @Bean
+    public Jackson2JsonMessageConverter messageConverter() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        return new Jackson2JsonMessageConverter(objectMapper);
+    }
+    
+    @Bean
+    public FanoutExchange fanoutExchange() {
+        return new FanoutExchange(exchangeUserEvent);
+    }
+}
+```
+
+**Key Features:**
+- **RabbitTemplate**: Spring's high-level abstraction for RabbitMQ operations
+- **Jackson2JsonMessageConverter**: Automatic JSON serialization/deserialization
+- **JavaTimeModule**: Support for Java 8+ time types (LocalDateTime, etc.)
+- **FanoutExchange**: Broadcasts messages to all bound queues
+
+#### 2. UserEventPublisher
+Publishes user lifecycle events to RabbitMQ:
+
+```java
+@Component
+public class UserEventPublisher {
+    
+    private final RabbitTemplate rabbitTemplate;
+    
+    public void publishUserEvent(UserEventDto userEventDto) {
+        rabbitTemplate.convertAndSend(exchangeUserEvent, "", userEventDto);
+    }
+}
+```
+
+**Usage Pattern:**
+- Publishes user events when users are created, updated, or deleted
+- Uses fanout exchange for broadcasting to multiple consumers
+- Empty routing key (`""`) for fanout exchanges
+
+#### 3. UserEventDto
+The message payload structure for user events:
+
+```java
+public class UserEventDto {
+    private UUID userId;
+    private String userName;
+    private String email;
+    private String fullName;
+    private String userStatus;
+    private String userType;
+    private String phoneNumber;
+    private String imageUrl;
+    private String actionType; // CREATE, UPDATE, DELETE
+}
+```
+
+**Event Types:**
+- **CREATE**: User registration events
+- **UPDATE**: User profile updates, status changes
+- **DELETE**: User deletion events
+
+### Message Flow
+
+1. **User Operation**: User performs an action (register, update, delete)
+2. **Event Creation**: Service creates a `UserEventDto` with event details
+3. **Message Publishing**: `UserEventPublisher` sends the event to RabbitMQ
+4. **Exchange Routing**: Fanout exchange broadcasts to all bound queues
+5. **Consumer Processing**: Other microservices consume and process events
+
+### Integration Points
+
+The RabbitMQ integration is designed to notify other microservices about user lifecycle events:
+
+- **Course Service**: Notify when users become instructors or are deleted
+- **Notification Service**: Send welcome emails, profile update notifications
+- **Analytics Service**: Track user registration and activity metrics
+- **Audit Service**: Log user changes for compliance
+
+### Security Considerations
+
+- **SSL/TLS**: Uses `amqps://` for encrypted connections
+- **Authentication**: Credentials embedded in connection URL
+- **VHost Isolation**: Uses dedicated virtual host for service isolation
+
+### Monitoring and Observability
+
+- **Message Acknowledgment**: Automatic message acknowledgment for reliability
+- **Connection Pooling**: CachingConnectionFactory for connection management
+- **Error Handling**: Built-in retry mechanisms and dead letter queues (configurable)
+
+### Best Practices Implemented
+
+1. **Idempotent Operations**: Event consumers should handle duplicate messages
+2. **Event Sourcing**: User events provide audit trail of all changes
+3. **Loose Coupling**: Services communicate through events, not direct calls
+4. **Scalability**: Fanout pattern allows multiple consumers per event type
+
+### RabbitMQ Usage Examples
+
+#### Publishing User Events
+To publish user events in your service layer, inject the `UserEventPublisher`:
+
+```java
+@Service
+public class UserServiceImpl implements UserService {
+    
+    private final UserEventPublisher userEventPublisher;
+    
+    @Override
+    public UserModel registerUser(UserRecordDto userRecordDto) {
+        UserModel userModel = // ... create user logic
+        
+        // Publish user creation event
+        UserEventDto userEventDto = new UserEventDto();
+        userEventDto.setUserId(userModel.getUserId());
+        userEventDto.setUserName(userModel.getUsername());
+        userEventDto.setEmail(userModel.getEmail());
+        userEventDto.setFullName(userModel.getFullName());
+        userEventDto.setUserStatus(userModel.getUserStatus().toString());
+        userEventDto.setUserType(userModel.getUserType().toString());
+        userEventDto.setActionType("CREATE");
+        
+        userEventPublisher.publishUserEvent(userEventDto);
+        
+        return userModel;
+    }
+}
+```
+
+#### Local RabbitMQ Setup
+For local development, you can use Docker to run RabbitMQ:
+
+```bash
+# Run RabbitMQ with management UI
+docker run -d --name rabbitmq \
+  -p 5672:5672 \
+  -p 15672:15672 \
+  rabbitmq:3-management
+
+# Access management UI at http://localhost:15672
+# Default credentials: guest/guest
+```
+
+#### Local Configuration
+For local RabbitMQ development, update `application.yml`:
+
+```yaml
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+```
+
+#### CloudAMQP Setup
+1. Create a CloudAMQP account at [cloudamqp.com](https://cloudamqp.com)
+2. Create a new instance (free tier available)
+3. Copy the connection URL from the CloudAMQP dashboard
+4. Update the `addresses` property in `application.yml`
+
+#### Message Consumption Example
+Other microservices can consume user events by implementing message listeners:
+
+```java
+@Component
+public class UserEventConsumer {
+    
+    @RabbitListener(queues = "user.events.queue")
+    public void handleUserEvent(UserEventDto userEventDto) {
+        switch (userEventDto.getActionType()) {
+            case "CREATE":
+                // Handle user creation
+                sendWelcomeEmail(userEventDto);
+                break;
+            case "UPDATE":
+                // Handle user update
+                updateUserCache(userEventDto);
+                break;
+            case "DELETE":
+                // Handle user deletion
+                cleanupUserData(userEventDto.getUserId());
+                break;
+        }
+    }
+}
+```
+
+### Troubleshooting RabbitMQ
+
+#### Common Issues
+1. **Connection Refused**: Check RabbitMQ server status and connection parameters
+2. **Authentication Failed**: Verify username/password and virtual host permissions
+3. **Message Not Delivered**: Check exchange and queue bindings
+4. **SSL Certificate Issues**: Ensure proper certificate configuration for CloudAMQP
+
+#### Monitoring
+- **CloudAMQP Dashboard**: Monitor message rates, connections, and queues
+- **Management UI**: Access RabbitMQ management interface for queue inspection
+- **Application Logs**: Check Spring Boot logs for RabbitMQ connection status
+
+#### Performance Tuning
+- **Connection Pooling**: Adjust `CachingConnectionFactory` settings
+- **Message Persistence**: Configure message durability based on requirements
+- **Consumer Concurrency**: Set appropriate consumer thread counts
 
 ## Eureka Service Discovery
 
