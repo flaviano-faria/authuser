@@ -17,6 +17,42 @@ public class UserEventDto {
     private String imageUrl;
     private String actionType;
 
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public void setUserStatus(String userStatus) {
+        this.userStatus = userStatus;
+    }
+
+    public void setUserType(String userType) {
+        this.userType = userType;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public void setActionType(String actionType) {
+        this.actionType = actionType;
+    }
+
 
     public UUID getUserId() {
         return userId;
@@ -53,4 +89,5 @@ public class UserEventDto {
     public String getActionType() {
         return actionType;
     }
+
 }
