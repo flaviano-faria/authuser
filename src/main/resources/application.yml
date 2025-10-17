@@ -46,3 +46,11 @@ eureka:
 
   rabbitmq:
     addresses: amqps://sjpxcsel:kzk4tvnpJ3NxleUrF9t3j6k2Q7vvGgVA@beaver.rmq.cloudamqp.com/sjpxcsel
+
+resilience4j:
+  retry:
+    instances:
+      retryInstance:
+        max-attempts: 3
+        wait-duration: 5s
+
