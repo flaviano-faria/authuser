@@ -48,6 +48,16 @@ eureka:
     addresses: amqps://sjpxcsel:kzk4tvnpJ3NxleUrF9t3j6k2Q7vvGgVA@beaver.rmq.cloudamqp.com/sjpxcsel
 
 resilience4j:
+  circuitbreaker:
+    instances:
+      circuitBreakInstance:
+        sliding-window-size: 30
+        permitted-number-of-calls-in-half-open-state: 2
+        sliding-window-type: TIME_BASED
+        minimum-number-of-calls: 2
+        wait-duration-in-open-state: 15s
+        failure-rate-threshold: 80
+
   retry:
     instances:
       retryInstance:
