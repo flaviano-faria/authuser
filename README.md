@@ -1,6 +1,6 @@
 # Authuser Service
 
-A comprehensive Spring Boot microservice for user authentication and management built with modern Java technologies. This service provides **user registration**, **authentication**, **user management**, and **instructor registration** capabilities with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **microservices communication** through REST clients, **Eureka service discovery** for dynamic service registration, and **AMQP messaging** support.
+A comprehensive Spring Boot microservice for user authentication and management built with modern Java technologies. This service provides **user registration**, **authentication**, **user management**, and **instructor registration** capabilities with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **microservices communication** through modern RestClient with load balancing, **Eureka service discovery** for dynamic service registration, and **RabbitMQ messaging** for event-driven architecture.
 
 ## Requirements
 - Java 21
@@ -52,6 +52,21 @@ Use the following command:
 ```bash
 mvn spring-boot:run -DSpring-boot.run.arguments=--server.port=8085
 ```
+
+## Key Features
+
+### Modern HTTP Client
+- **RestClient**: Spring's modern HTTP client (Spring Boot 3.2+)
+- **Load Balancing**: @LoadBalanced integration with Eureka
+- **Timeout Protection**: Configurable connection and read timeouts (5 seconds)
+- **Service Discovery**: Automatic service instance resolution
+- **No Deprecated APIs**: Future-proof implementation
+
+### Microservices Architecture
+- **Service-to-Service Communication**: RestClient with Eureka integration
+- **Event-Driven Messaging**: RabbitMQ for asynchronous user events
+- **Service Discovery**: Eureka client registration and discovery
+- **Load Balancing**: Client-side load balancing across service instances
 
 ## Application Configuration
 
@@ -156,7 +171,7 @@ Run tests with:
     - `CourseLevel` - Course level enumeration (BEGINNER, INTERMEDIATE, ADVANCED)
   - `configs/` - Configuration classes
     - `RequestLoggingFilterConfig` - HTTP request logging configuration
-    - `RestClientConfig` - REST client configuration
+    - `RestClientConfig` - REST client configuration with timeouts and Eureka load balancing
     - `DateConfig` - Date/time configuration
     - `ResolverConfig` - Specification argument resolver configuration
     - `RabbitmqConfig` - RabbitMQ configuration and message converter setup
@@ -560,6 +575,49 @@ Register a user as an instructor.
 
 ## Microservices Communication
 
+### RestClient Configuration
+
+The application uses **Spring's RestClient** (modern replacement for RestTemplate) with custom timeout settings and Eureka-based load balancing.
+
+#### Configuration Class
+```java
+@Configuration
+public class RestClientConfig {
+    
+    private static final int TIMEOUT = 5000;
+    
+    @LoadBalanced
+    @Bean
+    public RestClient.Builder restClientBuilder() {
+        return RestClient.builder()
+                .requestFactory(customRequestFactory());
+    }
+    
+    private ClientHttpRequestFactory customRequestFactory() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofMillis(TIMEOUT));
+        factory.setReadTimeout(Duration.ofMillis(TIMEOUT));
+        return factory;
+    }
+}
+```
+
+**Key Features:**
+- **@LoadBalanced**: Enables client-side load balancing with Eureka service discovery
+- **Custom Timeouts**: 5-second connection and read timeouts
+- **SimpleClientHttpRequestFactory**: Reliable HTTP client implementation
+- **No Deprecated APIs**: Uses modern Spring Boot 3.5+ approach
+
+**Timeout Configuration:**
+- **Connect Timeout**: 5000ms - Time to establish connection
+- **Read Timeout**: 5000ms - Time to wait for response
+
+**Benefits:**
+- ✅ Automatic service discovery via Eureka
+- ✅ Load balancing across multiple service instances
+- ✅ Prevents hanging connections with timeouts
+- ✅ Clean, maintainable code without deprecated APIs
+
 ### CourseClient
 
 The application includes a `CourseClient` for communicating with the course microservice:
@@ -570,19 +628,23 @@ The application includes a `CourseClient` for communicating with the course micr
 - **Pagination Support**: Handles paginated responses from course service
 - **Configuration**: Base URL configurable via `application.yml`
 - **Course Deletion**: Supports deleting user-course relationships in the course service
+- **Eureka Integration**: Automatically discovers course service instances
 
 **Configuration:**
 ```yaml
 ead:
   api:
     url:
-      course: http://localhost:8088/ead-course
+      course: 'http://ead-course-service/ead-course'
 ```
+
+**Note:** The URL uses the Eureka service name (`ead-course-service`) instead of hardcoded host/port, enabling dynamic service discovery.
 
 **Error Handling:**
 - Logs errors with detailed messages
 - Throws `RuntimeException` with cause for proper error propagation
 - Graceful degradation when course service is unavailable
+- Automatic retry via Eureka when service instances are available
 
 ## RabbitMQ Messaging Support
 
