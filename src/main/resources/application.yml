@@ -20,6 +20,12 @@ spring:
 #            non-contextual-creation: true
   application:
     name: ead-authuser-service
+  config:
+    import: 'optional:configserver:'
+  cloud:
+    config:
+      discovery:
+        service-id: ead-config-server
 #ead:
 #  api:
 #    url:
