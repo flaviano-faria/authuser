@@ -1,6 +1,6 @@
 # Authuser Service
 
-A comprehensive Spring Boot microservice for user authentication and management built with modern Java technologies. This service provides **user registration**, **authentication**, **user management**, and **instructor registration** capabilities with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **microservices communication** through modern RestClient with load balancing, **Eureka service discovery** for dynamic service registration, and **RabbitMQ messaging** for event-driven architecture.
+A comprehensive Spring Boot microservice for user authentication and management built with modern Java technologies. This service provides **user registration**, **authentication**, **user management**, and **instructor registration** capabilities with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **microservices communication** through modern RestClient with load balancing, **Eureka service discovery** for dynamic service registration, **RabbitMQ messaging** for event-driven architecture, **Resilience4j Circuit Breaker** for fault tolerance, **Spring Cloud Config Server** integration for centralized configuration management, and **Spring Boot Actuator** for production monitoring and management.
 
 ## Requirements
 - Java 21
@@ -8,6 +8,7 @@ A comprehensive Spring Boot microservice for user authentication and management 
 - PostgreSQL
 - Eureka Server (for service discovery)
 - RabbitMQ (CloudAMQP or local instance)
+- Spring Cloud Config Server (optional, for centralized configuration)
 
 ## Setup
 1. Clone the repository:
@@ -67,6 +68,14 @@ mvn spring-boot:run -DSpring-boot.run.arguments=--server.port=8085
 - **Event-Driven Messaging**: RabbitMQ for asynchronous user events
 - **Service Discovery**: Eureka client registration and discovery
 - **Load Balancing**: Client-side load balancing across service instances
+- **Circuit Breaker Pattern**: Resilience4j integration for fault tolerance
+- **Configuration Management**: Spring Cloud Config Server integration
+
+### Resilience & Observability
+- **Circuit Breaker**: Automatic failure detection and fallback handling
+- **Retry Mechanism**: Configurable retry policies for external service calls
+- **Spring Boot Actuator**: Production-ready monitoring and management endpoints
+- **Configuration Refresh**: Dynamic configuration updates without restart (@RefreshScope)
 
 ## Application Configuration
 
@@ -139,6 +148,74 @@ logging:
     org.hibernate: DEBUG
 ```
 
+### Spring Cloud Config Server Configuration
+The application integrates with Spring Cloud Config Server for centralized configuration management:
+
+```yaml
+spring:
+  config:
+    import: 'optional:configserver:'
+  cloud:
+    config:
+      discovery:
+        service-id: ead-config-server
+```
+
+**Features:**
+- **Centralized Configuration**: Externalized configuration management
+- **Service Discovery**: Automatic discovery of config server via Eureka
+- **Optional Import**: Application can start without config server (`optional:` prefix)
+- **Dynamic Refresh**: Configuration updates without restart using `@RefreshScope`
+
+### Spring Boot Actuator Configuration
+Production-ready monitoring and management endpoints:
+
+```yaml
+# Actuator endpoints can be exposed via management configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+```
+
+**Available Endpoints:**
+- **Health**: Application health status
+- **Info**: Application information
+- **Refresh**: Trigger configuration refresh (requires `@RefreshScope` beans)
+
+### Resilience4j Configuration
+Circuit breaker and retry configuration for fault tolerance:
+
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      circuitBreakerInstance:
+        sliding-window-size: 30
+        permitted-number-of-calls-in-half-open-state: 2
+        sliding-window-type: TIME_BASED
+        minimum-number-of-calls: 2
+        wait-duration-in-open-state: 15s
+        failure-rate-threshold: 80
+
+  retry:
+    instances:
+      retryInstance:
+        max-attempts: 3
+        wait-duration: 5s
+```
+
+**Circuit Breaker Configuration:**
+- **Sliding Window**: 30 calls used for failure rate calculation
+- **Failure Threshold**: 80% failure rate triggers circuit open
+- **Half-Open State**: Allows 2 test calls before fully opening/closing
+- **Wait Duration**: 15 seconds before attempting to close circuit
+
+**Retry Configuration:**
+- **Max Attempts**: 3 retry attempts before failure
+- **Wait Duration**: 5 seconds between retry attempts
+
 ## Testing
 Run tests with:
 ```bash
@@ -152,6 +229,7 @@ Run tests with:
     - `UserController` - User management endpoints with HATEOAS support
     - `UserCourseController` - User-course relationship endpoints (read-only)
     - `InstructorController` - Instructor subscription endpoints
+    - `RefreshScopeController` - Configuration refresh endpoint for Spring Cloud Config
   - `clients/` - REST clients for microservices communication
     - `CourseClient` - Client for course service communication
   - `publishers/` - Message publishers for event-driven communication
@@ -160,6 +238,7 @@ Run tests with:
     - `UserService` - User management service interface
     - `impl/` - Service implementations
     - `user/handler/` - User-specific handlers
+      - `UserHandler` - User conversion and validation logic
   - `repositories/` - Spring Data JPA repositories
     - `UserRepository` - User data access layer
   - `models/` - Entity models
@@ -169,6 +248,7 @@ Run tests with:
     - `UserType` - User type enumeration (ADMIN, USER, STUDENT, INSTRUCTOR)
     - `CourseStatus` - Course status enumeration (IN_PROGRESS, CONCLUDED)
     - `CourseLevel` - Course level enumeration (BEGINNER, INTERMEDIATE, ADVANCED)
+    - `ActionType` - User event action type enumeration (CREATE, UPDATE, DELETE)
   - `configs/` - Configuration classes
     - `RequestLoggingFilterConfig` - HTTP request logging configuration
     - `RestClientConfig` - REST client configuration with timeouts and Eureka load balancing
@@ -315,6 +395,30 @@ The application includes several key dependencies:
 </dependency>
 ```
 
+**Spring Cloud Config Client:**
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-config</artifactId>
+</dependency>
+```
+
+**Spring Boot Actuator:**
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+**Resilience4j Circuit Breaker:**
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+</dependency>
+```
+
 **AMQP Messaging:**
 ```xml
 <dependency>
@@ -343,6 +447,8 @@ The application includes several key dependencies:
 ```
 
 **Note:** The default `spring-boot-starter-logging` is excluded from `spring-boot-starter-web` to use Log4j2 instead.
+
+**Spring Cloud Version:** 2025.0.0
 
 ### HATEOAS Response Format
 Responses from HATEOAS-enabled endpoints include a `_links` section with hypermedia links:
@@ -573,6 +679,25 @@ Register a user as an instructor.
 - `200 OK` with the updated user object (now with INSTRUCTOR user type).
 - `404 NOT FOUND` if the user does not exist.
 
+### Configuration Management Endpoints
+
+#### `GET /refreshscope`
+Retrieve the value of a configuration property that supports dynamic refresh.
+
+**Response:**  
+- `200 OK` with the current configuration value.
+- Requires `@RefreshScope` annotation on the controller.
+
+**Usage:**
+This endpoint is used to test Spring Cloud Config Server integration. After updating configuration in the config server, you can trigger a refresh by calling the `/actuator/refresh` endpoint (if configured), which will update beans annotated with `@RefreshScope` without requiring a full application restart.
+
+**Configuration Example:**
+```yaml
+authuser:
+  refreshscope:
+    name: "Application Name from Config Server"
+```
+
 ## Microservices Communication
 
 ### RestClient Configuration
@@ -624,11 +749,19 @@ The application includes a `CourseClient` for communicating with the course micr
 
 **Features:**
 - **REST Client**: Uses Spring's `RestClient` for HTTP communication
+- **Circuit Breaker**: Resilience4j integration for fault tolerance and fallback handling
 - **Error Handling**: Comprehensive exception handling with logging
 - **Pagination Support**: Handles paginated responses from course service
 - **Configuration**: Base URL configurable via `application.yml`
 - **Course Deletion**: Supports deleting user-course relationships in the course service
 - **Eureka Integration**: Automatically discovers course service instances
+- **Fallback Methods**: Graceful degradation when course service is unavailable
+
+**Circuit Breaker Integration:**
+- Uses `@CircuitBreaker` annotation from Resilience4j
+- Automatically opens circuit when failure threshold is reached
+- Fallback method returns empty page when circuit is open
+- Prevents cascading failures in microservices architecture
 
 **Configuration:**
 ```yaml
@@ -755,14 +888,16 @@ public class UserEventDto {
     private String userType;
     private String phoneNumber;
     private String imageUrl;
-    private String actionType; // CREATE, UPDATE, DELETE
+    private String actionType; // Uses ActionType enum: CREATE, UPDATE, DELETE
 }
 ```
 
-**Event Types:**
+**Event Types (ActionType Enum):**
 - **CREATE**: User registration events
 - **UPDATE**: User profile updates, status changes
 - **DELETE**: User deletion events
+
+The `actionType` field uses the `ActionType` enum to ensure type safety and consistency across the application.
 
 ### Message Flow
 
@@ -979,7 +1114,8 @@ Access the Eureka dashboard at `http://localhost:8761` to:
 When communicating with other services, the application can use:
 - **Service Discovery**: Look up services by name instead of hardcoded URLs
 - **Load Balancing**: Automatically distribute requests across multiple instances
-- **Circuit Breaker**: Implement fault tolerance patterns
+- **Circuit Breaker**: Implement fault tolerance patterns with Resilience4j
+- **Configuration Management**: Discover and connect to Spring Cloud Config Server
 
 ### ResponsePageDto
 
@@ -990,6 +1126,54 @@ The `ResponsePageDto` class handles paginated responses from external services:
 - **JSON Deserialization**: Properly deserializes paginated responses
 - **Page Metadata**: Preserves pagination information
 - **Unknown Properties**: Ignores unknown JSON properties for flexibility
+
+## Resilience4j Circuit Breaker
+
+This application implements **Resilience4j Circuit Breaker** pattern for fault tolerance in microservices communication, preventing cascading failures and providing graceful degradation.
+
+### Circuit Breaker Features
+
+- **Automatic Failure Detection**: Monitors failure rates and automatically opens circuit when threshold is reached
+- **Fallback Methods**: Returns predefined fallback responses when circuit is open
+- **Half-Open State**: Tests service recovery by allowing limited requests through
+- **Configurable Thresholds**: Customizable failure rates, window sizes, and wait durations
+- **Integration with RestClient**: Works seamlessly with Spring's RestClient
+
+### Implementation
+
+The `CourseClient` uses `@CircuitBreaker` annotation to protect external service calls:
+
+```java
+@Component
+public class CourseClient {
+    
+    @CircuitBreaker(name = "circuitBreakerInstance", fallbackMethod = "circuitbreakerfallback")
+    public Page<CourseRecordDto> getAllCoursesByUser(UUID userId, Pageable pageable) {
+        // RestClient call to course service
+    }
+    
+    public Page<CourseRecordDto> circuitbreakerfallback(UUID userId, Pageable pageable, Throwable t) {
+        logger.error("in fallback, cause -> {}", t.toString());
+        return new PageImpl<>(new ArrayList<>());
+    }
+}
+```
+
+**Benefits:**
+- ✅ Prevents cascading failures across microservices
+- ✅ Provides graceful degradation when services are unavailable
+- ✅ Reduces latency by failing fast when circuit is open
+- ✅ Automatic recovery when service becomes available again
+
+### Circuit States
+
+1. **CLOSED**: Circuit is closed, requests flow normally
+2. **OPEN**: Circuit is open, requests are rejected immediately and fallback is called
+3. **HALF_OPEN**: Testing state, allows limited requests to test service recovery
+
+### Configuration
+
+See the [Resilience4j Configuration](#resilience4j-configuration) section in Application Configuration for detailed configuration options.
 
 ## Data Transfer Objects (DTOs)
 
@@ -1082,6 +1266,20 @@ The `UserService` interface includes the following key methods:
 - `updatePassword(UserRecordDto userRecordDto, UserModel userModel)` - Update user password
 - `updateImage(UserRecordDto userRecordDto, UserModel userModel)` - Update user profile image
 - `findAll(Specification<UserModel> spec, Pageable pageable)` - Find users with specifications and pagination
+
+#### UserHandler
+The `UserHandler` service provides user-specific utility methods:
+
+**Methods:**
+- `toUserModel(UserRecordDto userRecordDTO)` - Converts UserRecordDto to UserModel with default values (ACTIVE status, USER type, UTC timestamps)
+- `validateUserRecord(UserRecordDto userRecordDTO)` - Validates user record data
+- `validateUsername(UserRecordDto userRecordDTO)` - Checks for duplicate usernames and throws `DuplicatedUsernameException` if found
+
+**Features:**
+- **Default Values**: Automatically sets user status to ACTIVE and user type to USER
+- **Timezone Handling**: Uses UTC timezone for creation and update timestamps
+- **Validation**: Encapsulates username duplication validation logic
+- **Separation of Concerns**: Keeps conversion and validation logic separate from service layer
 
 #### UserCourseService
 The `UserCourseService` interface manages user-course relationships:
