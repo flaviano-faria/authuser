@@ -2,6 +2,31 @@
 
 A comprehensive Spring Boot microservice for user authentication and management built with modern Java technologies. This service provides **user registration**, **authentication**, **user management**, and **instructor registration** capabilities with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **microservices communication** through modern RestClient with load balancing, **Eureka service discovery** for dynamic service registration, **RabbitMQ messaging** for event-driven architecture, **Resilience4j Circuit Breaker** for fault tolerance, **Spring Cloud Config Server** integration for centralized configuration management, and **Spring Boot Actuator** for production monitoring and management.
 
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Setup](#setup)
+- [Running the Application](#running-the-application)
+- [Key Features](#key-features)
+- [Application Configuration](#application-configuration)
+- [Architecture Overview](#architecture-overview)
+- [Project Structure](#project-structure)
+- [REST API](#rest-api)
+- [Microservices Communication](#microservices-communication)
+- [RabbitMQ Messaging Support](#rabbitmq-messaging-support)
+- [Eureka Service Discovery](#eureka-service-discovery)
+- [Resilience4j Circuit Breaker](#resilience4j-circuit-breaker)
+- [Data Transfer Objects (DTOs)](#data-transfer-objects-dtos)
+- [Service Layer Architecture](#service-layer-architecture)
+- [Transaction Management](#transaction-management)
+- [Validation & JsonView Pattern](#validation--jsonview-pattern)
+- [Dynamic Query Specifications](#dynamic-query-specifications)
+- [Event-Driven Architecture](#event-driven-architecture)
+- [Best Practices & Development Guidelines](#best-practices--development-guidelines)
+- [Performance Considerations](#performance-considerations)
+- [Troubleshooting](#troubleshooting)
+- [Testing](#testing)
+
 ## Requirements
 - Java 21
 - Maven
@@ -215,6 +240,46 @@ resilience4j:
 **Retry Configuration:**
 - **Max Attempts**: 3 retry attempts before failure
 - **Wait Duration**: 5 seconds between retry attempts
+
+## Architecture Overview
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Authuser Service                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ Controllers  │  │   Services   │  │ Repositories  │     │
+│  │  (REST API)  │→ │  (Business)  │→ │   (Data)      │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│         │                 │                    │            │
+│         │                 │                    │            │
+│         ▼                 ▼                    ▼            │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              PostgreSQL Database                    │    │
+│  └────────────────────────────────────────────────────┘    │
+│                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  RestClient  │  │  RabbitMQ     │  │   Eureka      │     │
+│  │  (Course)    │  │  (Events)     │  │ (Discovery)   │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│         │                 │                    │            │
+└─────────┼─────────────────┼────────────────────┼──────────┘
+          │                 │                    │
+          ▼                 ▼                    ▼
+    Course Service    Other Services      Config Server
+```
+
+### Key Architectural Patterns
+
+1. **Layered Architecture**: Clear separation between controllers, services, and repositories
+2. **Event-Driven**: Asynchronous messaging via RabbitMQ for loose coupling
+3. **Circuit Breaker**: Fault tolerance for external service calls
+4. **Service Discovery**: Dynamic service location via Eureka
+5. **Configuration Management**: Centralized config via Spring Cloud Config
+6. **Transaction Management**: ACID compliance for data consistency
 
 ## Testing
 Run tests with:
@@ -476,7 +541,8 @@ Responses from HATEOAS-enabled endpoints include a `_links` section with hyperme
 ## REST API
 
 ### Authentication Endpoints
-- `POST /auth/signup`  
+
+#### `POST /auth/signup`  
   Register a new user.  
   **Request Body:**
   ```json
@@ -488,8 +554,27 @@ Responses from HATEOAS-enabled endpoints include a `_links` section with hyperme
     "phoneNumber": "string"
   }
   ```
+  **Validation:**
+  - `username`: Required, 4-50 characters
+  - `email`: Required, valid email format
+  - `password`: Required, 6-20 characters, must meet password policy
+  - `fullName`: Required
+  - `phoneNumber`: Optional
+  
   **Response:**  
-  - `201 CREATED` with the created user object.
+  - `201 CREATED` with the created user object (includes HATEOAS links)
+  - `400 BAD REQUEST` if validation fails
+
+#### `GET /auth/logs`
+  Test endpoint for logging levels demonstration.
+  
+  **Response:**  
+  - `200 OK` with "Logging Spring Boot..." message
+  
+  **Purpose:**
+  - Demonstrates all Log4j2 logging levels (TRACE, DEBUG, INFO, WARN, ERROR)
+  - Useful for testing logging configuration
+  - Should be disabled or secured in production
 
 ### User Endpoints
 
@@ -1247,6 +1332,8 @@ public class ResponsePageDto<T> extends PageImpl<T> {
 - JSON deserialization support
 - Generic type support for different DTOs
 
+## Service Layer Architecture
+
 ### Service Layer Methods
 
 #### UserService
@@ -1266,6 +1353,230 @@ The `UserService` interface includes the following key methods:
 - `updatePassword(UserRecordDto userRecordDto, UserModel userModel)` - Update user password
 - `updateImage(UserRecordDto userRecordDto, UserModel userModel)` - Update user profile image
 - `findAll(Specification<UserModel> spec, Pageable pageable)` - Find users with specifications and pagination
+
+### Service Implementation Patterns
+
+**Dependency Injection:**
+- Constructor-based injection for better testability and immutability
+- All dependencies are final, ensuring thread-safety
+
+**Event Publishing:**
+- User lifecycle events are published after successful database operations
+- Events use `ActionType` enum for type safety (CREATE, UPDATE, DELETE)
+
+**Error Handling:**
+- Service layer throws domain-specific exceptions (`NotFoundException`)
+- Exceptions are handled globally by `GlobalExceptionHandler`
+
+## Transaction Management
+
+The service layer uses **Spring's declarative transaction management** with `@Transactional` annotation to ensure data consistency and ACID compliance.
+
+### Transactional Methods
+
+**Read-Only Transactions:**
+- `findAll()` - Optimized for read operations
+- `findById()` - Single entity retrieval
+
+**Write Transactions:**
+- `registerUser()` - Creates new user and publishes CREATE event
+- `updateUser()` - Updates user and publishes UPDATE event
+- `updateImage()` - Updates image URL and publishes UPDATE event
+- `delete()` - Deletes user and publishes DELETE event
+- `registerInstructor()` - Updates user type and publishes UPDATE event
+
+### Transaction Characteristics
+
+```java
+@Transactional
+public UserModel registerUser(UserRecordDto userRecordDto) {
+    // Database operation
+    userRepository.save(userModel);
+    // Event publishing (within same transaction)
+    userEventPublisher.publishUserEvent(userModel.toUserEventDto(ActionType.CREATE));
+    return userModel;
+}
+```
+
+**Benefits:**
+- ✅ **Atomicity**: All operations succeed or fail together
+- ✅ **Consistency**: Database remains in valid state
+- ✅ **Isolation**: Concurrent transactions don't interfere
+- ✅ **Durability**: Committed changes persist
+
+**Transaction Propagation:**
+- Default: `REQUIRED` - Joins existing transaction or creates new one
+- Ensures event publishing happens within same transaction boundary
+
+## Validation & JsonView Pattern
+
+The application implements a sophisticated validation pattern using **Jakarta Bean Validation** combined with **JsonView** for selective field validation and serialization.
+
+### JsonView Validation Groups
+
+The `UserRecordDto` uses nested interfaces to define validation groups:
+
+```java
+public record UserRecordDto(
+    @NotBlank(groups = UserView.RegistrationPost.class)
+    @Size(min = 4, max = 50, groups = UserView.RegistrationPost.class)
+    @JsonView(UserView.RegistrationPost.class)
+    String username,
+    
+    @NotBlank(groups = {UserView.RegistrationPost.class, UserView.PasswordPut.class})
+    @PasswordConstraint(groups = {UserView.RegistrationPost.class, UserView.PasswordPut.class})
+    @JsonView({UserView.RegistrationPost.class, UserView.PasswordPut.class})
+    String password
+    // ... other fields
+) {
+    public interface UserView {
+        interface RegistrationPost {}
+        interface UserPut {}
+        interface PasswordPut {}
+        interface ImagePut {}
+    }
+}
+```
+
+### Usage in Controllers
+
+```java
+@PostMapping("/signup")
+public ResponseEntity<Object> registerUser(
+    @RequestBody 
+    @Validated(UserRecordDto.UserView.RegistrationPost.class)
+    @JsonView(UserRecordDto.UserView.RegistrationPost.class)
+    UserRecordDto userRecordDto,
+    Errors errors) {
+    // Only fields annotated with RegistrationPost group are validated
+    // Only fields with RegistrationPost JsonView are deserialized
+}
+```
+
+**Benefits:**
+- ✅ **Selective Validation**: Different validation rules per endpoint
+- ✅ **Type Safety**: Compile-time validation group checking
+- ✅ **API Flexibility**: Same DTO for multiple endpoints with different requirements
+- ✅ **Security**: Prevents mass assignment vulnerabilities
+
+### Custom Validation
+
+**PasswordConstraint:**
+- Custom validator implementing `ConstraintValidator`
+- Enforces password policy (length, complexity, etc.)
+- Reusable across different validation groups
+
+## Dynamic Query Specifications
+
+The application uses **JPA Specifications** with **specification-arg-resolver** library for dynamic, type-safe query building.
+
+### SpecificationTemplate
+
+```java
+@And({
+    @Spec(path="userType", spec = Equal.class),
+    @Spec(path="userStatus", spec = Equal.class),
+    @Spec(path="email", spec = Like.class),
+    @Spec(path="username", spec = Like.class),
+    @Spec(path="fullName", spec = LikeIgnoreCase.class),
+})
+public interface UserSpec extends Specification<UserModel> {}
+```
+
+### Usage in Controllers
+
+```java
+@GetMapping
+public ResponseEntity<Page<UserModel>> getAllUsers(
+    SpecificationTemplate.UserSpec spec,
+    Pageable pageable) {
+    return ResponseEntity.ok(userService.findAll(spec, pageable));
+}
+```
+
+### Query Examples
+
+**Filter by User Type:**
+```
+GET /users?userType=INSTRUCTOR
+```
+
+**Filter by Status:**
+```
+GET /users?userStatus=ACTIVE
+```
+
+**Search by Email (Like):**
+```
+GET /users?email=@example.com
+```
+
+**Search by Full Name (Case-Insensitive):**
+```
+GET /users?fullName=john
+```
+
+**Combined Filters:**
+```
+GET /users?userType=INSTRUCTOR&userStatus=ACTIVE&email=@example.com&page=0&size=10&sort=userId,ASC
+```
+
+**Available Spec Types:**
+- `Equal` - Exact match
+- `Like` - SQL LIKE pattern matching
+- `LikeIgnoreCase` - Case-insensitive LIKE
+- `In` - IN clause (multiple values)
+- `Between` - Range queries
+- And more...
+
+**Benefits:**
+- ✅ **Type Safety**: Compile-time query building
+- ✅ **Dynamic Queries**: Build queries from HTTP parameters
+- ✅ **Reusability**: Specification composition
+- ✅ **Performance**: Optimized SQL generation
+
+## Event-Driven Architecture
+
+### User Event Publishing
+
+The application publishes user lifecycle events to RabbitMQ for asynchronous processing by other microservices.
+
+### Event Conversion Pattern
+
+The `UserModel` entity includes a conversion method for event publishing:
+
+```java
+public UserEventDto toUserEventDto(ActionType actionType) {
+    UserEventDto userEventDto = new UserEventDto();
+    BeanUtils.copyProperties(this, userEventDto);
+    userEventDto.setUserType(this.getUserType().toString());
+    userEventDto.setUserStatus(this.getUserStatus().toString());
+    userEventDto.setActionType(actionType.toString());
+    return userEventDto;
+}
+```
+
+**Usage:**
+```java
+@Transactional
+public void delete(UserModel userModel) {
+    userRepository.delete(userModel);
+    userEventPublisher.publishUserEvent(userModel.toUserEventDto(ActionType.DELETE));
+}
+```
+
+**Event Flow:**
+1. **Service Operation**: User operation (create/update/delete)
+2. **Event Creation**: `toUserEventDto()` converts entity to DTO
+3. **Event Publishing**: `UserEventPublisher` sends to RabbitMQ
+4. **Fanout Exchange**: Broadcasts to all bound queues
+5. **Consumer Processing**: Other services consume and process events
+
+**Benefits:**
+- ✅ **Loose Coupling**: Services communicate via events, not direct calls
+- ✅ **Scalability**: Multiple consumers can process same event
+- ✅ **Resilience**: Events persist if consumer is temporarily unavailable
+- ✅ **Audit Trail**: Complete history of user changes
 
 #### UserHandler
 The `UserHandler` service provides user-specific utility methods:
@@ -1419,3 +1730,324 @@ Clients can navigate the API by:
 4. Discovering available operations dynamically
 
 This approach makes the API more flexible and maintainable while providing a better developer experience.
+
+## Best Practices & Development Guidelines
+
+### Code Organization
+
+1. **Package Structure**: Follow domain-driven design principles
+   - Controllers handle HTTP concerns
+   - Services contain business logic
+   - Repositories manage data access
+   - DTOs separate API contracts from entities
+
+2. **Dependency Injection**: Use constructor injection
+   - Better testability
+   - Immutable dependencies (final fields)
+   - Clear dependencies at compile time
+
+3. **Exception Handling**: Centralized exception handling
+   - Domain-specific exceptions (`NotFoundException`, `DuplicatedUsernameException`)
+   - Global exception handler for consistent error responses
+   - Proper HTTP status codes
+
+### Transaction Management
+
+1. **Use `@Transactional` for write operations**
+   - Ensures data consistency
+   - Automatic rollback on exceptions
+   - Proper isolation levels
+
+2. **Keep transactions short**
+   - Don't perform long-running operations in transactions
+   - Publish events after transaction commits (if needed)
+
+3. **Read-only transactions for queries**
+   - Use `@Transactional(readOnly = true)` for read operations
+   - Optimizes database connection usage
+
+### Validation
+
+1. **Use validation groups**
+   - Different validation rules per endpoint
+   - Prevents over-validation
+   - Better error messages
+
+2. **Custom validators**
+   - Reusable validation logic
+   - Business rule enforcement
+   - Clear validation messages
+
+### Event Publishing
+
+1. **Publish events after successful operations**
+   - Ensures data consistency
+   - Event represents actual state change
+
+2. **Use enums for action types**
+   - Type safety
+   - Compile-time checking
+   - Clear intent
+
+3. **Idempotent event processing**
+   - Consumers should handle duplicate events
+   - Use event IDs for deduplication
+
+### API Design
+
+1. **HATEOAS for discoverability**
+   - Clients can navigate API dynamically
+   - Reduces coupling
+   - Self-documenting
+
+2. **Pagination for collections**
+   - Prevents large payloads
+   - Better performance
+   - User-friendly
+
+3. **Proper HTTP status codes**
+   - 200 OK for successful GET/PUT
+   - 201 CREATED for POST
+   - 404 NOT FOUND for missing resources
+   - 409 CONFLICT for business rule violations
+
+### Microservices Communication
+
+1. **Use circuit breakers**
+   - Prevents cascading failures
+   - Graceful degradation
+   - Fast failure
+
+2. **Timeout configuration**
+   - Prevent hanging requests
+   - Configurable per service
+   - Reasonable defaults
+
+3. **Service discovery**
+   - Use Eureka service names
+   - Avoid hardcoded URLs
+   - Dynamic instance resolution
+
+### Logging
+
+1. **Structured logging**
+   - Use appropriate log levels
+   - Include context (userId, requestId)
+   - Avoid sensitive data (passwords, tokens)
+
+2. **Request logging**
+   - Log incoming requests
+   - Exclude sensitive headers
+   - Configurable payload size
+
+### Security Considerations
+
+1. **Password handling**
+   - Never log passwords
+   - Use `@JsonIgnore` on password fields
+   - Consider password hashing (BCrypt recommended)
+
+2. **Input validation**
+   - Validate all inputs
+   - Prevent injection attacks
+   - Sanitize user data
+
+3. **Error messages**
+   - Don't expose internal details
+   - Generic error messages for users
+   - Detailed logs for debugging
+
+## Performance Considerations
+
+### Database Optimization
+
+1. **Indexing**: Ensure proper indexes on:
+   - `username` (unique constraint)
+   - `email` (unique constraint)
+   - `userId` (primary key)
+   - Frequently queried fields
+
+2. **Query Optimization**:
+   - Use pagination for large datasets
+   - Avoid N+1 queries
+   - Use projections for read-only operations
+
+3. **Connection Pooling**:
+   - Configure appropriate pool size
+   - Monitor connection usage
+   - Set reasonable timeouts
+
+### Caching Strategy
+
+1. **Consider caching for**:
+   - Frequently accessed user data
+   - Static configuration
+   - Service discovery results
+
+2. **Cache invalidation**:
+   - Invalidate on updates
+   - Use TTL for time-sensitive data
+   - Clear on user deletion
+
+### Microservices Communication
+
+1. **Connection Pooling**:
+   - RestClient uses connection pooling
+   - Configure appropriate pool size
+   - Reuse connections
+
+2. **Timeout Configuration**:
+   - 5-second timeout prevents hanging
+   - Adjust based on service SLA
+   - Consider retry with exponential backoff
+
+3. **Circuit Breaker**:
+   - Prevents resource exhaustion
+   - Fast failure reduces latency
+   - Fallback provides graceful degradation
+
+### Event Publishing
+
+1. **Asynchronous Publishing**:
+   - Don't block on event publishing
+   - Use async patterns if needed
+   - Handle publishing failures gracefully
+
+2. **Message Persistence**:
+   - Configure RabbitMQ for durability
+   - Use acknowledgments
+   - Dead letter queues for failed messages
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Service Not Registering with Eureka
+
+**Symptoms:**
+- Service doesn't appear in Eureka dashboard
+- Other services can't discover this service
+
+**Solutions:**
+- Verify Eureka server is running
+- Check `eureka.client.service-url.defaultZone` configuration
+- Ensure `@EnableEurekaClient` is present (auto-configured in Spring Cloud)
+- Check network connectivity
+- Verify service name matches Eureka registration
+
+#### 2. Circuit Breaker Always Open
+
+**Symptoms:**
+- All requests fail with fallback
+- Circuit never closes
+
+**Solutions:**
+- Check failure threshold configuration
+- Verify minimum number of calls requirement
+- Review wait duration in open state
+- Check underlying service health
+- Review logs for actual failure causes
+
+#### 3. Configuration Not Refreshing
+
+**Symptoms:**
+- Changes in config server not reflected
+- `@RefreshScope` beans not updating
+
+**Solutions:**
+- Verify `/actuator/refresh` endpoint is accessible
+- Check `@RefreshScope` annotation is present
+- Ensure config server is accessible
+- Verify configuration property names match
+- Check actuator endpoints are exposed
+
+#### 4. RabbitMQ Connection Issues
+
+**Symptoms:**
+- Events not being published
+- Connection refused errors
+
+**Solutions:**
+- Verify RabbitMQ server is running
+- Check connection URL format
+- Verify credentials and virtual host
+- Check network connectivity
+- Review SSL certificate configuration (for CloudAMQP)
+
+#### 5. Database Connection Issues
+
+**Symptoms:**
+- Application fails to start
+- Connection timeout errors
+
+**Solutions:**
+- Verify PostgreSQL is running
+- Check database credentials
+- Verify database exists
+- Check connection pool configuration
+- Review network connectivity
+
+#### 6. Validation Errors Not Showing
+
+**Symptoms:**
+- Validation fails but no error details
+- Generic error messages
+
+**Solutions:**
+- Verify `@Validated` annotation is present
+- Check validation groups match
+- Ensure `Errors` parameter is in controller method
+- Verify custom validators are properly registered
+- Check error handling in `GlobalExceptionHandler`
+
+### Debugging Tips
+
+1. **Enable Debug Logging**:
+   ```yaml
+   logging:
+     level:
+       com.ead: DEBUG
+       org.springframework.web: DEBUG
+       org.hibernate.SQL: DEBUG
+   ```
+
+2. **Check Application Logs**:
+   - Review startup logs for configuration issues
+   - Check for exception stack traces
+   - Monitor request/response logs
+
+3. **Use Actuator Endpoints**:
+   - `/actuator/health` - Service health
+   - `/actuator/info` - Application information
+   - `/actuator/metrics` - Performance metrics
+
+4. **Database Queries**:
+   - Enable `show-sql` in development
+   - Review generated SQL queries
+   - Check query execution plans
+
+5. **Network Debugging**:
+   - Test service connectivity
+   - Verify firewall rules
+   - Check DNS resolution
+   - Review network latency
+
+### Performance Issues
+
+1. **Slow Queries**:
+   - Review database indexes
+   - Analyze query execution plans
+   - Consider query optimization
+   - Use pagination
+
+2. **High Memory Usage**:
+   - Review connection pool sizes
+   - Check for memory leaks
+   - Monitor JVM heap
+   - Review caching strategies
+
+3. **Slow External Calls**:
+   - Check timeout configurations
+   - Review circuit breaker settings
+   - Monitor service response times
+   - Consider caching responses
