@@ -8,4 +8,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig {
+
+    private static final String[] AUTH_WHITELIST = {
+            "/auth/**"
+    };
 }
