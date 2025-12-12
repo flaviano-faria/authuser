@@ -1,7 +1,10 @@
 package com.ead.authuser.configs.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.MalformedKeyException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +39,36 @@ public class JwtProvider {
 
     private SecretKey getSdecretKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String getUsernameJwt(String token) {
+        return Jwts.parser()
+                .verifyWith(getSdecretKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
+
+    }
+
+    public boolean validateJwt(String authToken) {
+        try {
+            Jwts.parser()
+                    .verifyWith(getSdecretKey())
+                    .build()
+                    .parseSignedClaims(authToken);
+        } catch (SecurityException e) {
+           logger.error("invalid jwt signature: {}", e.getMessage());
+        } catch (MalformedKeyException e) {
+            logger.error("invalid jwt token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            logger.error("jwt token is expired: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            logger.error("jwt is unsupported: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            logger.error("jwt claims string is empty: {}", e.getMessage());
+        }
+        return false;
     }
 
 }
