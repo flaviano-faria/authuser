@@ -1,118 +1,317 @@
 # Authuser Service
 
-A comprehensive Spring Boot microservice for user authentication and management built with modern Java technologies. This service provides **user registration**, **authentication**, **user management**, and **instructor registration** capabilities with **Spring HATEOAS** support for hypermedia-driven REST APIs, comprehensive logging with **Log4j2**, **microservices communication** through modern RestClient with load balancing, **Eureka service discovery** for dynamic service registration, **RabbitMQ messaging** for event-driven architecture, **Resilience4j Circuit Breaker** for fault tolerance, **Spring Cloud Config Server** integration for centralized configuration management, and **Spring Boot Actuator** for production monitoring and management.
+A production-ready Spring Boot microservice for user authentication and management, built with modern Java technologies and microservices best practices. This service provides comprehensive user management capabilities including registration, JWT-based authentication, role-based access control (RBAC), instructor management, and seamless integration with other microservices.
 
-## Table of Contents
+## 🚀 Features
+
+- **JWT Authentication**: Secure token-based authentication with configurable expiration
+- **User Management**: Complete CRUD operations with validation and HATEOAS support
+- **Role-Based Access Control**: Fine-grained authorization with Spring Security
+- **Microservices Communication**: RestClient with Eureka service discovery and load balancing
+- **Event-Driven Architecture**: RabbitMQ integration for asynchronous event publishing
+- **Fault Tolerance**: Resilience4j Circuit Breaker for resilient service communication
+- **Configuration Management**: Spring Cloud Config Server integration
+- **Production Monitoring**: Spring Boot Actuator for health checks and metrics
+- **Dynamic Queries**: JPA Specifications for flexible data filtering
+- **Comprehensive Logging**: Log4j2 for production-grade logging
+
+## 📋 Table of Contents
 
 - [Requirements](#requirements)
-- [Setup](#setup)
-- [Running the Application](#running-the-application)
-- [Key Features](#key-features)
-- [Application Configuration](#application-configuration)
+- [Quick Start](#quick-start)
 - [Architecture Overview](#architecture-overview)
-- [Project Structure](#project-structure)
-- [REST API](#rest-api)
-- [Microservices Communication](#microservices-communication)
-- [RabbitMQ Messaging Support](#rabbitmq-messaging-support)
-- [Eureka Service Discovery](#eureka-service-discovery)
-- [Resilience4j Circuit Breaker](#resilience4j-circuit-breaker)
-- [Data Transfer Objects (DTOs)](#data-transfer-objects-dtos)
-- [Service Layer Architecture](#service-layer-architecture)
-- [Transaction Management](#transaction-management)
-- [Validation & JsonView Pattern](#validation--jsonview-pattern)
-- [Dynamic Query Specifications](#dynamic-query-specifications)
-- [Event-Driven Architecture](#event-driven-architecture)
-- [Best Practices & Development Guidelines](#best-practices--development-guidelines)
-- [Performance Considerations](#performance-considerations)
-- [Troubleshooting](#troubleshooting)
+- [API Documentation](#api-documentation)
+- [Configuration](#configuration)
+- [Security](#security)
+- [Microservices Integration](#microservices-integration)
+- [Development Guide](#development-guide)
 - [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
 
-## Requirements
-- Java 21
-- Maven
-- PostgreSQL
-- Eureka Server (for service discovery)
-- RabbitMQ (CloudAMQP or local instance)
-- Spring Cloud Config Server (optional, for centralized configuration)
+## 📦 Requirements
 
-## Setup
-1. Clone the repository:
-   ```bash
-   git clone <repo-url>
-   cd authuser
-   ```
-2. Configure your PostgreSQL database (default database: `ead-authuser-v2`)
-3. Start the Eureka Server (typically on port 8761)
-4. Set up RabbitMQ (CloudAMQP or local instance)
-5. Configure the course service URL, RabbitMQ, and Eureka settings in `application.yml`:
-   ```yaml
-   ead:
-     api:
-       url:
-         course: 'http://ead-course-service/ead-course'
-     broker:
-       exchange:
-         userEvent: ead.userevent
-   
-   spring:
-     rabbitmq:
-       addresses: amqps://username:password@beaver.rmq.cloudamqp.com/vhost
-   
-   eureka:
-     client:
-       service-url:
-         defaultZone: 'http://localhost:8761/eureka'
-     instance:
-       hostname: localhost
-   ```
+- **Java 21** or higher
+- **Maven 3.6+**
+- **PostgreSQL 12+**
+- **Eureka Server** (for service discovery)
+- **RabbitMQ** (CloudAMQP or local instance)
+- **Spring Cloud Config Server** (optional, for centralized configuration)
 
-## Running the Application
-Use Maven to build and run the application:
+## 🏃 Quick Start
+
+### 1. Clone the Repository
+
 ```bash
-./mvnw spring-boot:run
-```
-The application will start on [http://localhost:8087/ead-authuser/](http://localhost:8087/ead-authuser/).
-
-## Start application with maven
-Use the following command:
-```bash
-mvn spring-boot:run -DSpring-boot.run.arguments=--server.port=8085
+git clone <repo-url>
+cd authuser
 ```
 
-## Key Features
+### 2. Database Setup
 
-### Modern HTTP Client
-- **RestClient**: Spring's modern HTTP client (Spring Boot 3.2+)
-- **Load Balancing**: @LoadBalanced integration with Eureka
-- **Timeout Protection**: Configurable connection and read timeouts (5 seconds)
-- **Service Discovery**: Automatic service instance resolution
-- **No Deprecated APIs**: Future-proof implementation
+Create a PostgreSQL database:
 
-### Microservices Architecture
-- **Service-to-Service Communication**: RestClient with Eureka integration
-- **Event-Driven Messaging**: RabbitMQ for asynchronous user events
-- **Service Discovery**: Eureka client registration and discovery
-- **Load Balancing**: Client-side load balancing across service instances
-- **Circuit Breaker Pattern**: Resilience4j integration for fault tolerance
-- **Configuration Management**: Spring Cloud Config Server integration
+```sql
+CREATE DATABASE ead-authuser-v2;
+```
 
-### Resilience & Observability
-- **Circuit Breaker**: Automatic failure detection and fallback handling
-- **Retry Mechanism**: Configurable retry policies for external service calls
-- **Spring Boot Actuator**: Production-ready monitoring and management endpoints
-- **Configuration Refresh**: Dynamic configuration updates without restart (@RefreshScope)
+### 3. Configuration
 
-## Application Configuration
-
-### Database Configuration
-The application uses PostgreSQL as the primary database:
+Configure your `application.yml` or use Spring Cloud Config Server:
 
 ```yaml
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/ead-authuser-v2
     username: postgres
-    password: banco123
+    password: your_password
+  application:
+    name: ead-authuser-service
+
+ead:
+  auth:
+    jwtSecret: your-secret-key-min-64-characters-long-for-hmac-sha256
+    jwtExpirationMs: 86400000  # 24 hours
+  api:
+    url:
+      course: 'http://ead-course-service/ead-course'
+  broker:
+    exchange:
+      userEvent: ead.userevent
+
+eureka:
+  client:
+    service-url:
+      defaultZone: 'http://localhost:8761/eureka'
+  instance:
+    hostname: localhost
+
+spring:
+  rabbitmq:
+    addresses: amqps://username:password@beaver.rmq.cloudamqp.com/vhost
+```
+
+### 4. Run the Application
+
+Using Maven Wrapper:
+
+```bash
+./mvnw spring-boot:run
+```
+
+Or with a custom port:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8085
+```
+
+The application will start on `http://localhost:8087/ead-authuser/` (default configuration).
+
+## 🏗️ Architecture Overview
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Authuser Service                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Controllers  │  │   Services   │  │ Repositories │      │
+│  │  (REST API)  │→ │  (Business)  │→ │   (Data)     │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│         │                 │                    │            │
+│         │                 │                    │            │
+│         ▼                 ▼                    ▼            │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │              PostgreSQL Database                    │     │
+│  └────────────────────────────────────────────────────┘     │
+│                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  RestClient  │  │  RabbitMQ     │  │   Eureka      │      │
+│  │  (Course)    │  │  (Events)     │  │ (Discovery)   │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│         │                 │                    │            │
+└─────────┼─────────────────┼────────────────────┼──────────┘
+          │                 │                    │
+          ▼                 ▼                    ▼
+    Course Service    Other Services      Config Server
+```
+
+### Key Architectural Patterns
+
+1. **Layered Architecture**: Clear separation between controllers, services, and repositories
+2. **Event-Driven**: Asynchronous messaging via RabbitMQ for loose coupling
+3. **Circuit Breaker**: Fault tolerance for external service calls
+4. **Service Discovery**: Dynamic service location via Eureka
+5. **Configuration Management**: Centralized config via Spring Cloud Config
+6. **Transaction Management**: ACID compliance for data consistency
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+#### `POST /auth/signup`
+
+Register a new user.
+
+**Request Body:**
+```json
+{
+  "username": "john_doe",
+  "email": "john@example.com",
+  "password": "SecurePass123!",
+  "fullName": "John Doe",
+  "phoneNumber": "+1234567890"
+}
+```
+
+**Validation Rules:**
+- `username`: Required, 4-50 characters, unique
+- `email`: Required, valid email format, unique
+- `password`: Required, 6-20 characters, must meet password policy
+- `fullName`: Required
+- `phoneNumber`: Optional
+
+**Response:** `201 CREATED` with user object (includes HATEOAS links)
+
+#### `POST /auth/login`
+
+Authenticate user and receive JWT token.
+
+**Request Body:**
+```json
+{
+  "username": "john_doe",
+  "password": "SecurePass123!"
+}
+```
+
+**Response:** `201 CREATED`
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Note:** Include the token in subsequent requests using the `Authorization: Bearer <token>` header.
+
+### User Management Endpoints
+
+#### `GET /users`
+
+Retrieve a paginated list of users with optional filtering.
+
+**Query Parameters:**
+- `page` (default: 0) - Page number
+- `size` (default: 3) - Page size
+- `sort` (default: userId,ASC) - Sort field and direction
+- `userType` (optional) - Filter by user type (ADMIN, USER, STUDENT, INSTRUCTOR)
+- `userStatus` (optional) - Filter by status (ACTIVE, BLOCKED)
+- `email` (optional) - Search by email (LIKE pattern)
+- `username` (optional) - Search by username (LIKE pattern)
+- `fullName` (optional) - Search by full name (case-insensitive)
+- `courseId` (optional) - Filter users by course ID
+
+**Example:**
+```
+GET /users?userType=INSTRUCTOR&userStatus=ACTIVE&page=0&size=10&sort=userId,ASC
+```
+
+**Response:** `200 OK` with paginated user list including HATEOAS links
+
+#### `GET /users/{userId}`
+
+Retrieve a specific user by ID.
+
+**Response:** `200 OK` with user object including `_links` section
+
+#### `PUT /users/{userId}`
+
+Update user information (fullName, phoneNumber).
+
+**Request Body:**
+```json
+{
+  "fullName": "John Updated",
+  "phoneNumber": "+9876543210"
+}
+```
+
+**Response:** `200 OK` with updated user object
+
+#### `PUT /users/{userId}/password`
+
+Update user password.
+
+**Request Body:**
+```json
+{
+  "oldPassword": "OldPass123!",
+  "password": "NewPass123!"
+}
+```
+
+**Response:** 
+- `200 OK` if password updated successfully
+- `409 CONFLICT` if old password doesn't match
+
+#### `PUT /users/{userId}/image`
+
+Update user profile image.
+
+**Request Body:**
+```json
+{
+  "imageUrl": "https://example.com/profile.jpg"
+}
+```
+
+**Response:** `200 OK` with updated user object
+
+#### `DELETE /users/{userId}`
+
+Delete a user and associated course subscriptions.
+
+**Response:** `200 OK` if deleted successfully
+
+### User-Course Endpoints
+
+#### `GET /users/{userId}/courses`
+
+Retrieve all courses associated with a specific user.
+
+**Query Parameters:**
+- `page` (default: 0) - Page number
+- `size` (default: 10) - Page size
+- `sort` (default: courseId,ASC) - Sort field and direction
+
+**Response:** `200 OK` with paginated course data
+
+### Instructor Endpoints
+
+#### `POST /instructors/subscription`
+
+Register a user as an instructor.
+
+**Request Body:**
+```json
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+**Response:** `200 OK` with updated user object (now with INSTRUCTOR user type)
+
+## ⚙️ Configuration
+
+### Database Configuration
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ead-authuser-v2
+    username: postgres
+    password: your_password
   jpa:
     show-sql: true
     hibernate:
@@ -125,8 +324,18 @@ spring:
             non-contextual-creation: true
 ```
 
-### Service Discovery Configuration
-Eureka client configuration for service registration and discovery:
+### JWT Configuration
+
+```yaml
+ead:
+  auth:
+    jwtSecret: your-secret-key-min-64-characters-long-for-hmac-sha256
+    jwtExpirationMs: 86400000  # 24 hours in milliseconds
+```
+
+**Security Note:** The JWT secret must be at least 64 characters long for HMAC-SHA256. Use a strong, randomly generated secret in production.
+
+### Service Discovery (Eureka)
 
 ```yaml
 eureka:
@@ -141,76 +350,20 @@ spring:
     name: ead-authuser-service
 ```
 
-### External Service Configuration
-Course service communication settings:
-
-```yaml
-ead:
-  api:
-    url:
-      course: 'http://ead-course-service/ead-course'
-  broker:
-    exchange:
-      userEvent: ead.userevent
-```
-
 ### RabbitMQ Configuration
-Message broker configuration for event-driven communication:
 
 ```yaml
 spring:
   rabbitmq:
     addresses: amqps://username:password@beaver.rmq.cloudamqp.com/vhost
+
+ead:
+  broker:
+    exchange:
+      userEvent: ead.userevent
 ```
 
-### Logging Configuration
-Comprehensive logging setup with Log4j2:
-
-```yaml
-logging:
-  level:
-    com.ead: INFO
-    org.hibernate: DEBUG
-```
-
-### Spring Cloud Config Server Configuration
-The application integrates with Spring Cloud Config Server for centralized configuration management:
-
-```yaml
-spring:
-  config:
-    import: 'optional:configserver:'
-  cloud:
-    config:
-      discovery:
-        service-id: ead-config-server
-```
-
-**Features:**
-- **Centralized Configuration**: Externalized configuration management
-- **Service Discovery**: Automatic discovery of config server via Eureka
-- **Optional Import**: Application can start without config server (`optional:` prefix)
-- **Dynamic Refresh**: Configuration updates without restart using `@RefreshScope`
-
-### Spring Boot Actuator Configuration
-Production-ready monitoring and management endpoints:
-
-```yaml
-# Actuator endpoints can be exposed via management configuration
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,refresh
-```
-
-**Available Endpoints:**
-- **Health**: Application health status
-- **Info**: Application information
-- **Refresh**: Trigger configuration refresh (requires `@RefreshScope` beans)
-
-### Resilience4j Configuration
-Circuit breaker and retry configuration for fault tolerance:
+### Resilience4j Circuit Breaker
 
 ```yaml
 resilience4j:
@@ -231,1214 +384,179 @@ resilience4j:
         wait-duration: 5s
 ```
 
-**Circuit Breaker Configuration:**
-- **Sliding Window**: 30 calls used for failure rate calculation
-- **Failure Threshold**: 80% failure rate triggers circuit open
-- **Half-Open State**: Allows 2 test calls before fully opening/closing
-- **Wait Duration**: 15 seconds before attempting to close circuit
+### Spring Cloud Config Server
 
-**Retry Configuration:**
-- **Max Attempts**: 3 retry attempts before failure
-- **Wait Duration**: 5 seconds between retry attempts
-
-## Architecture Overview
-
-### System Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Authuser Service                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ Controllers  │  │   Services   │  │ Repositories  │     │
-│  │  (REST API)  │→ │  (Business)  │→ │   (Data)      │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│         │                 │                    │            │
-│         │                 │                    │            │
-│         ▼                 ▼                    ▼            │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │              PostgreSQL Database                    │    │
-│  └────────────────────────────────────────────────────┘    │
-│                                                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  RestClient  │  │  RabbitMQ     │  │   Eureka      │     │
-│  │  (Course)    │  │  (Events)     │  │ (Discovery)   │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│         │                 │                    │            │
-└─────────┼─────────────────┼────────────────────┼──────────┘
-          │                 │                    │
-          ▼                 ▼                    ▼
-    Course Service    Other Services      Config Server
+```yaml
+spring:
+  config:
+    import: 'optional:configserver:'
+  cloud:
+    config:
+      discovery:
+        service-id: ead-config-server
+      username: configserver
+      password: ead123
 ```
 
-### Key Architectural Patterns
-
-1. **Layered Architecture**: Clear separation between controllers, services, and repositories
-2. **Event-Driven**: Asynchronous messaging via RabbitMQ for loose coupling
-3. **Circuit Breaker**: Fault tolerance for external service calls
-4. **Service Discovery**: Dynamic service location via Eureka
-5. **Configuration Management**: Centralized config via Spring Cloud Config
-6. **Transaction Management**: ACID compliance for data consistency
-
-## Testing
-Run tests with:
-```bash
-./mvnw test
-```
-
-## Project Structure
-- `src/main/java/com/ead/authuser/` - Main application code
-  - `controllers/` - REST controllers
-    - `AuthenticationController` - User registration and authentication endpoints
-    - `UserController` - User management endpoints with HATEOAS support
-    - `UserCourseController` - User-course relationship endpoints (read-only)
-    - `InstructorController` - Instructor subscription endpoints
-    - `RefreshScopeController` - Configuration refresh endpoint for Spring Cloud Config
-  - `clients/` - REST clients for microservices communication
-    - `CourseClient` - Client for course service communication
-  - `publishers/` - Message publishers for event-driven communication
-    - `UserEventPublisher` - Publishes user lifecycle events to RabbitMQ
-  - `services/` - Service interfaces and implementations
-    - `UserService` - User management service interface
-    - `impl/` - Service implementations
-    - `user/handler/` - User-specific handlers
-      - `UserHandler` - User conversion and validation logic
-  - `repositories/` - Spring Data JPA repositories
-    - `UserRepository` - User data access layer
-  - `models/` - Entity models
-    - `UserModel` - User entity with HATEOAS support
-  - `enums/` - Enum types
-    - `UserStatus` - User status enumeration (ACTIVE, BLOCKED)
-    - `UserType` - User type enumeration (ADMIN, USER, STUDENT, INSTRUCTOR)
-    - `CourseStatus` - Course status enumeration (IN_PROGRESS, CONCLUDED)
-    - `CourseLevel` - Course level enumeration (BEGINNER, INTERMEDIATE, ADVANCED)
-    - `ActionType` - User event action type enumeration (CREATE, UPDATE, DELETE)
-  - `configs/` - Configuration classes
-    - `RequestLoggingFilterConfig` - HTTP request logging configuration
-    - `RestClientConfig` - REST client configuration with timeouts and Eureka load balancing
-    - `DateConfig` - Date/time configuration
-    - `ResolverConfig` - Specification argument resolver configuration
-    - `RabbitmqConfig` - RabbitMQ configuration and message converter setup
-  - `specifications/` - JPA Specification classes for dynamic queries
-    - `SpecificationTemplate` - Template for user specifications
-  - `validations/` - Custom validation classes and constraints
-    - `UserValidator` - Custom user validation logic
-    - `PasswordConstraint` - Password validation constraint
-    - `PaswordConstraintImpl` - Password constraint implementation
-  - `exceptions/` - Custom exception classes and global exception handling
-    - `GlobalExceptionHandler` - Global exception handling
-    - `NotFoundException` - Resource not found exception
-    - `DuplicatedUsernameException` - Username conflict exception
-    - `ErrorRecordResponse` - Error response DTO
-    - `ErrorResponse` - Error response structure
-  - `dtos/` - Data Transfer Objects
-    - `UserRecordDto` - User data transfer object with validation groups
-    - `CourseRecordDto` - Course data transfer object
-    - `InstructorRecordDto` - Instructor subscription DTO
-    - `ResponsePageDto` - Paginated response DTO
-    - `UserEventDto` - User event message payload for RabbitMQ
-- `src/main/resources/` - Configuration files
-  - `application.yml` - Application configuration
-- `src/test/java/com/ead/authuser/` - Test classes
-
-## Logging Features
-
-This application implements comprehensive logging using **Log4j2** for better performance and flexibility compared to the default Logback.
-
-### Log4j2 Configuration
-
-The application uses Log4j2 instead of the default Spring Boot logging:
-
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-log4j2</artifactId>
-</dependency>
-```
-
-**Note:** The default `spring-boot-starter-logging` is excluded from `spring-boot-starter-web` to avoid conflicts.
-
-### Logging Levels
-
-Configured logging levels in `application.yml`:
+### Logging Configuration
 
 ```yaml
 logging:
   level:
     com.ead: INFO
     org.hibernate: DEBUG
+    org.springframework.security: DEBUG
 ```
 
-### Request Logging
+### Actuator Configuration
 
-The application includes a `RequestLoggingFilterConfig` that provides detailed HTTP request logging:
-
-- **Query String**: Included in logs
-- **Request Payload**: Included (up to 10,000 characters)
-- **Headers**: Included (except Authorization header for security)
-- **Response**: Logged for debugging purposes
-
-This configuration helps with debugging and monitoring API requests.
-
-### Application Logging
-
-Controllers and services include strategic logging statements:
-
-- **Debug Level**: Input parameters and method entry points
-- **Warn Level**: Business logic warnings (e.g., password mismatches)
-- **Error Level**: Exception handling and error conditions
-
-**Example Log Output:**
-```
-DEBUG - POST registerUser received userRecordDTO: UserRecordDTO[username=john_doe, email=john@example.com, ...]
-DEBUG - deleteUser received userId: 123e4567-e89b-12d3-a456-426614174000
-WARN  - mismatched old password: 123e4567-e89b-12d3-a456-426614174000
-ERROR - handleNotFoundException message: User not found with id: 123e4567-e89b-12d3-a456-426614174000
-```
-
-
-## Spring HATEOAS Features
-
-This application implements **Spring HATEOAS** (Hypermedia as the Engine of Application State) to provide hypermedia-driven REST APIs. HATEOAS enables clients to navigate through the API dynamically by following links embedded in the responses.
-
-### Key HATEOAS Features Implemented:
-
-1. **RepresentationModel Integration**: The `UserModel` extends `RepresentationModel<UserModel>`, allowing it to include HATEOAS links.
-
-2. **Dynamic Link Generation**: Using `WebMvcLinkBuilder` to create self-referencing links for resources.
-
-3. **Hypermedia Responses**: API responses include `_links` section with navigable links.
-
-### Dependencies
-The application includes several key dependencies:
-
-**Core Spring Boot Dependencies:**
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-web</artifactId>
-    <exclusions>
-        <exclusion>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-logging</artifactId>
-        </exclusion>
-    </exclusions>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-jpa</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-validation</artifactId>
-</dependency>
-```
-
-**Spring HATEOAS:**
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-hateoas</artifactId>
-</dependency>
-```
-
-**Log4j2 Logging:**
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-log4j2</artifactId>
-</dependency>
-```
-
-**Eureka Client:**
-```xml
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-    <version>4.3.0</version>
-</dependency>
-```
-
-**Spring Cloud Config Client:**
-```xml
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-config</artifactId>
-</dependency>
-```
-
-**Spring Boot Actuator:**
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
-```
-
-**Resilience4j Circuit Breaker:**
-```xml
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
-</dependency>
-```
-
-**AMQP Messaging:**
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-amqp</artifactId>
-</dependency>
-```
-
-**Database:**
-```xml
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>42.7.6</version>
-    <scope>runtime</scope>
-</dependency>
-```
-
-**Specification Support:**
-```xml
-<dependency>
-    <groupId>net.kaczmarzyk</groupId>
-    <artifactId>specification-arg-resolver</artifactId>
-    <version>3.1.0</version>
-</dependency>
-```
-
-**Note:** The default `spring-boot-starter-logging` is excluded from `spring-boot-starter-web` to use Log4j2 instead.
-
-**Spring Cloud Version:** 2025.0.0
-
-### HATEOAS Response Format
-Responses from HATEOAS-enabled endpoints include a `_links` section with hypermedia links:
-
-```json
-{
-  "userId": "123e4567-e89b-12d3-a456-426614174000",
-  "username": "john_doe",
-  "email": "john@example.com",
-  "fullName": "John Doe",
-  "userStatus": "ACTIVE",
-  "userType": "USER",
-  "phoneNumber": "+1234567890",
-  "imageUrl": "https://example.com/image.jpg",
-  "creationDate": "01-01-2024 10:00:00",
-  "lastUpdateDate": "01-01-2024 10:00:00",
-  "_links": {
-    "self": {
-      "href": "http://localhost:8087/ead-authuser/users/123e4567-e89b-12d3-a456-426614174000"
-    }
-  }
-}
-```
-
-## REST API
-
-### Authentication Endpoints
-
-#### `POST /auth/signup`  
-  Register a new user.  
-  **Request Body:**
-  ```json
-  {
-    "username": "string",
-    "email": "string",
-    "password": "string",
-    "fullName": "string",
-    "phoneNumber": "string"
-  }
-  ```
-  **Validation:**
-  - `username`: Required, 4-50 characters
-  - `email`: Required, valid email format
-  - `password`: Required, 6-20 characters, must meet password policy
-  - `fullName`: Required
-  - `phoneNumber`: Optional
-  
-  **Response:**  
-  - `201 CREATED` with the created user object (includes HATEOAS links)
-  - `400 BAD REQUEST` if validation fails
-
-#### `GET /auth/logs`
-  Test endpoint for logging levels demonstration.
-  
-  **Response:**  
-  - `200 OK` with "Logging Spring Boot..." message
-  
-  **Purpose:**
-  - Demonstrates all Log4j2 logging levels (TRACE, DEBUG, INFO, WARN, ERROR)
-  - Useful for testing logging configuration
-  - Should be disabled or secured in production
-
-### User Endpoints
-
-#### `GET /users`
-Retrieve a paginated list of all users with HATEOAS links.
-
-**Query Parameters:**
-- `page` (default: 0) - Page number
-- `size` (default: 3) - Page size
-- `sort` (default: userId,ASC) - Sort field and direction
-- `courseId` (optional) - Filter users by course ID
-
-**Response Example:**
-```json
-{
-  "content": [
-    {
-      "userId": "123e4567-e89b-12d3-a456-426614174000",
-      "username": "john_doe",
-      "email": "john@example.com",
-      "fullName": "John Doe",
-      "userStatus": "ACTIVE",
-      "userType": "USER",
-      "phoneNumber": "+1234567890",
-      "imageUrl": "https://example.com/image.jpg",
-      "creationDate": "01-01-2024 10:00:00",
-      "lastUpdateDate": "01-01-2024 10:00:00",
-      "_links": {
-        "self": {
-          "href": "http://localhost:8087/ead-authuser/users/123e4567-e89b-12d3-a456-426614174000"
-        }
-      }
-    }
-  ],
-  "pageable": {
-    "sort": {
-      "sorted": true,
-      "unsorted": false,
-      "empty": false
-    },
-    "pageNumber": 0,
-    "pageSize": 3,
-    "offset": 0,
-    "paged": true,
-    "unpaged": false
-  },
-  "totalElements": 1,
-  "totalPages": 1,
-  "last": true,
-  "first": true,
-  "sort": {
-    "sorted": true,
-    "unsorted": false,
-    "empty": false
-  },
-  "numberOfElements": 1,
-  "size": 3,
-  "number": 0,
-  "empty": false
-}
-```
-
-#### `GET /users/{userId}`
-Retrieve a user by their ID with HATEOAS links.
-
-**Response:**  
-- `200 OK` with the user object including `_links` section.
-- `404 NOT FOUND` if the user does not exist.
-
-**Response Example:**
-```json
-{
-  "userId": "123e4567-e89b-12d3-a456-426614174000",
-  "username": "john_doe",
-  "email": "john@example.com",
-  "fullName": "John Doe",
-  "userStatus": "ACTIVE",
-  "userType": "USER",
-  "phoneNumber": "+1234567890",
-  "imageUrl": "https://example.com/image.jpg",
-  "creationDate": "01-01-2024 10:00:00",
-  "lastUpdateDate": "01-01-2024 10:00:00",
-  "_links": {
-    "self": {
-      "href": "http://localhost:8087/ead-authuser/users/123e4567-e89b-12d3-a456-426614174000"
-    }
-  }
-}
-```
-
-#### `DELETE /users/{userId}`
-Delete a user by their ID.  
-**Response:**  
-- `200 OK` if deleted.  
-- `404 NOT FOUND` if the user does not exist.
-
-#### `PUT /users/{userId}`
-Update a user's `fullName` and `phoneNumber`.  
-**Request Body:**
-```json
-{
-  "fullName": "string",
-  "phoneNumber": "string"
-}
-```
-**Response:**  
-- `200 OK` with the updated user object including HATEOAS links.  
-- `404 NOT FOUND` if the user does not exist.
-
-#### `PUT /users/{userId}/password`
-Update a user's password.  
-**Request Body:**
-```json
-{
-  "oldPassword": "string",
-  "password": "string"
-}
-```
-**Response:**  
-- `200 OK` if the password is updated successfully.  
-- `409 CONFLICT` if the old password does not match.  
-- `404 NOT FOUND` if the user does not exist.
-
-#### `PUT /users/{userId}/image`
-Update a user's profile image.  
-**Request Body:**
-```json
-{
-  "imageUrl": "string"
-}
-```
-**Response:**  
-- `200 OK` with the updated user object including HATEOAS links.  
-- `404 NOT FOUND` if the user does not exist.
-
-### User-Course Endpoints
-
-#### `GET /users/{userId}/courses`
-Retrieve all courses associated with a specific user.
-
-**Query Parameters:**
-- `page` (default: 0) - Page number
-- `size` (default: 10) - Page size
-- `sort` (default: courseId,ASC) - Sort field and direction
-
-**Response Example:**
-```json
-{
-  "content": [
-    {
-      "courseId": "123e4567-e89b-12d3-a456-426614174000",
-      "name": "Spring Boot Fundamentals",
-      "description": "Learn Spring Boot from scratch",
-      "imageUrl": "https://example.com/course-image.jpg",
-      "courseStatus": "ACTIVE",
-      "userInstructor": "456e7890-e89b-12d3-a456-426614174000",
-      "courseLevel": "BEGINNER"
-    }
-  ],
-  "page": {
-    "size": 10,
-    "totalElements": 1,
-    "totalPages": 1,
-    "number": 0
-  }
-}
-```
-
-**Response:**  
-- `200 OK` with paginated course data.
-- `500 INTERNAL SERVER ERROR` if course service communication fails.
-
-
-### Instructor Endpoints
-
-#### `POST /instructors/subscription`
-Register a user as an instructor.
-
-**Request Body:**
-```json
-{
-  "userId": "123e4567-e89b-12d3-a456-426614174000"
-}
-```
-
-**Response:**  
-- `200 OK` with the updated user object (now with INSTRUCTOR user type).
-- `404 NOT FOUND` if the user does not exist.
-
-### Configuration Management Endpoints
-
-#### `GET /refreshscope`
-Retrieve the value of a configuration property that supports dynamic refresh.
-
-**Response:**  
-- `200 OK` with the current configuration value.
-- Requires `@RefreshScope` annotation on the controller.
-
-**Usage:**
-This endpoint is used to test Spring Cloud Config Server integration. After updating configuration in the config server, you can trigger a refresh by calling the `/actuator/refresh` endpoint (if configured), which will update beans annotated with `@RefreshScope` without requiring a full application restart.
-
-**Configuration Example:**
 ```yaml
-authuser:
-  refreshscope:
-    name: "Application Name from Config Server"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
 ```
 
-## Microservices Communication
+## 🔒 Security
+
+### JWT Authentication
+
+The service implements JWT-based authentication using Spring Security:
+
+1. **Token Generation**: Tokens are generated upon successful login
+2. **Token Validation**: All protected endpoints validate JWT tokens
+3. **Token Expiration**: Configurable expiration time (default: 24 hours)
+4. **Security Filter**: `AuthenticationJwtFilter` intercepts requests and validates tokens
+
+### Security Configuration
+
+```java
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+public class WebSecurityConfig {
+    // Security filter chain configuration
+    // JWT authentication filter
+    // Password encoder (BCrypt)
+    // Authentication manager
+}
+```
+
+### Protected Endpoints
+
+- **Public Endpoints**: `/auth/**` (signup, login)
+- **Protected Endpoints**: All other endpoints require authentication
+- **Role-Based Access**: `GET /users/**` requires `USER` role
+
+### Password Security
+
+- Passwords are hashed using BCrypt (via `PasswordEncoderFactories.createDelegatingPasswordEncoder()`)
+- Passwords are never logged or exposed in API responses
+- Password validation enforces complexity requirements
+
+## 🔗 Microservices Integration
 
 ### RestClient Configuration
 
-The application uses **Spring's RestClient** (modern replacement for RestTemplate) with custom timeout settings and Eureka-based load balancing.
+The service uses Spring's modern `RestClient` for HTTP communication:
 
-#### Configuration Class
+**Features:**
+- **Load Balancing**: `@LoadBalanced` integration with Eureka
+- **Timeout Protection**: 5-second connection and read timeouts
+- **Service Discovery**: Automatic service instance resolution
+- **No Deprecated APIs**: Future-proof implementation
+
+**Configuration:**
 ```java
 @Configuration
 public class RestClientConfig {
-    
-    private static final int TIMEOUT = 5000;
-    
     @LoadBalanced
     @Bean
     public RestClient.Builder restClientBuilder() {
         return RestClient.builder()
                 .requestFactory(customRequestFactory());
     }
-    
-    private ClientHttpRequestFactory customRequestFactory() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofMillis(TIMEOUT));
-        factory.setReadTimeout(Duration.ofMillis(TIMEOUT));
-        return factory;
-    }
 }
 ```
 
-**Key Features:**
-- **@LoadBalanced**: Enables client-side load balancing with Eureka service discovery
-- **Custom Timeouts**: 5-second connection and read timeouts
-- **SimpleClientHttpRequestFactory**: Reliable HTTP client implementation
-- **No Deprecated APIs**: Uses modern Spring Boot 3.5+ approach
+### Course Service Communication
 
-**Timeout Configuration:**
-- **Connect Timeout**: 5000ms - Time to establish connection
-- **Read Timeout**: 5000ms - Time to wait for response
+The `CourseClient` provides integration with the course microservice:
 
-**Benefits:**
-- ✅ Automatic service discovery via Eureka
-- ✅ Load balancing across multiple service instances
-- ✅ Prevents hanging connections with timeouts
-- ✅ Clean, maintainable code without deprecated APIs
-
-### CourseClient
-
-The application includes a `CourseClient` for communicating with the course microservice:
-
-**Features:**
-- **REST Client**: Uses Spring's `RestClient` for HTTP communication
-- **Circuit Breaker**: Resilience4j integration for fault tolerance and fallback handling
+- **Circuit Breaker**: Resilience4j integration for fault tolerance
+- **Fallback Methods**: Graceful degradation when service is unavailable
+- **Pagination Support**: Handles paginated responses
 - **Error Handling**: Comprehensive exception handling with logging
-- **Pagination Support**: Handles paginated responses from course service
-- **Configuration**: Base URL configurable via `application.yml`
-- **Course Deletion**: Supports deleting user-course relationships in the course service
-- **Eureka Integration**: Automatically discovers course service instances
-- **Fallback Methods**: Graceful degradation when course service is unavailable
 
-**Circuit Breaker Integration:**
-- Uses `@CircuitBreaker` annotation from Resilience4j
-- Automatically opens circuit when failure threshold is reached
-- Fallback method returns empty page when circuit is open
-- Prevents cascading failures in microservices architecture
+### RabbitMQ Event Publishing
 
-**Configuration:**
-```yaml
-ead:
-  api:
-    url:
-      course: 'http://ead-course-service/ead-course'
-```
+User lifecycle events are published to RabbitMQ:
 
-**Note:** The URL uses the Eureka service name (`ead-course-service`) instead of hardcoded host/port, enabling dynamic service discovery.
+**Event Types:**
+- `CREATE`: User registration events
+- `UPDATE`: User profile updates, status changes
+- `DELETE`: User deletion events
 
-**Error Handling:**
-- Logs errors with detailed messages
-- Throws `RuntimeException` with cause for proper error propagation
-- Graceful degradation when course service is unavailable
-- Automatic retry via Eureka when service instances are available
+**Event Flow:**
+1. User operation occurs (create/update/delete)
+2. Service creates `UserEventDto` with event details
+3. `UserEventPublisher` sends event to RabbitMQ fanout exchange
+4. Exchange broadcasts to all bound queues
+5. Other microservices consume and process events
 
-## RabbitMQ Messaging Support
+## 🛠️ Development Guide
 
-This application includes **RabbitMQ** support through Spring Boot's `spring-boot-starter-amqp`, enabling asynchronous messaging capabilities for microservices communication using the **Advanced Message Queuing Protocol (AMQP)**.
-
-### RabbitMQ Features
-
-- **Message Queuing**: Reliable message queuing and delivery with acknowledgments
-- **Event-Driven Architecture**: Asynchronous event publishing for user lifecycle events
-- **Fanout Exchange**: Broadcasting user events to multiple consumers
-- **JSON Message Serialization**: Automatic JSON conversion for message payloads
-- **Cloud Integration**: Support for cloud-hosted RabbitMQ instances (CloudAMQP)
-
-### Architecture Overview
-
-The application implements an **event-driven architecture** where user lifecycle events are published to RabbitMQ for consumption by other microservices:
+### Project Structure
 
 ```
-Authuser Service → RabbitMQ → Other Microservices
-     (Publisher)    (Broker)     (Consumers)
+src/main/java/com/ead/authuser/
+├── controllers/          # REST API endpoints
+│   ├── AuthenticationController.java
+│   ├── UserController.java
+│   ├── UserCourseController.java
+│   └── InstructorController.java
+├── services/             # Business logic layer
+│   ├── UserService.java
+│   └── impl/
+├── repositories/         # Data access layer
+│   ├── UserRepository.java
+│   └── RoleRepository.java
+├── models/               # Entity models
+│   ├── UserModel.java
+│   └── RoleModel.java
+├── dtos/                 # Data Transfer Objects
+│   ├── UserRecordDto.java
+│   ├── LoginRecordDto.java
+│   └── JwtRecordDto.java
+├── configs/              # Configuration classes
+│   ├── WebSecurityConfig.java
+│   ├── RestClientConfig.java
+│   ├── RabbitmqConfig.java
+│   └── security/         # Security components
+│       ├── JwtProvider.java
+│       ├── AuthenticationJwtFilter.java
+│       └── UserDetailsServiceImpl.java
+├── clients/              # External service clients
+│   └── CourseClient.java
+├── publishers/           # Event publishers
+│   └── UserEventPublisher.java
+├── validations/          # Custom validators
+│   └── PasswordConstraint.java
+├── specifications/       # JPA Specifications
+│   └── SpecificationTemplate.java
+└── exceptions/           # Exception handling
+    └── GlobalExceptionHandler.java
 ```
 
-### RabbitMQ Configuration
+### Key Design Patterns
 
-#### CloudAMQP Integration
-The application is configured to use **CloudAMQP** for managed RabbitMQ hosting:
+#### 1. Validation Groups with JsonView
 
-```yaml
-spring:
-  rabbitmq:
-    addresses: amqps://username:password@beaver.rmq.cloudamqp.com/vhost
-```
-
-#### Exchange Configuration
-```yaml
-ead:
-  broker:
-    exchange:
-      userEvent: ead.userevent
-```
-
-### RabbitMQ Components
-
-#### 1. RabbitmqConfig
-The main configuration class that sets up RabbitMQ components:
-
-```java
-@Configuration
-public class RabbitmqConfig {
-    
-    @Bean
-    public RabbitTemplate rabbitTemplate() {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(cachingConnectionFactory);
-        rabbitTemplate.setMessageConverter(messageConverter());
-        return rabbitTemplate;
-    }
-    
-    @Bean
-    public Jackson2JsonMessageConverter messageConverter() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        return new Jackson2JsonMessageConverter(objectMapper);
-    }
-    
-    @Bean
-    public FanoutExchange fanoutExchange() {
-        return new FanoutExchange(exchangeUserEvent);
-    }
-}
-```
-
-**Key Features:**
-- **RabbitTemplate**: Spring's high-level abstraction for RabbitMQ operations
-- **Jackson2JsonMessageConverter**: Automatic JSON serialization/deserialization
-- **JavaTimeModule**: Support for Java 8+ time types (LocalDateTime, etc.)
-- **FanoutExchange**: Broadcasts messages to all bound queues
-
-#### 2. UserEventPublisher
-Publishes user lifecycle events to RabbitMQ:
-
-```java
-@Component
-public class UserEventPublisher {
-    
-    private final RabbitTemplate rabbitTemplate;
-    
-    public void publishUserEvent(UserEventDto userEventDto) {
-        rabbitTemplate.convertAndSend(exchangeUserEvent, "", userEventDto);
-    }
-}
-```
-
-**Usage Pattern:**
-- Publishes user events when users are created, updated, or deleted
-- Uses fanout exchange for broadcasting to multiple consumers
-- Empty routing key (`""`) for fanout exchanges
-
-#### 3. UserEventDto
-The message payload structure for user events:
-
-```java
-public class UserEventDto {
-    private UUID userId;
-    private String userName;
-    private String email;
-    private String fullName;
-    private String userStatus;
-    private String userType;
-    private String phoneNumber;
-    private String imageUrl;
-    private String actionType; // Uses ActionType enum: CREATE, UPDATE, DELETE
-}
-```
-
-**Event Types (ActionType Enum):**
-- **CREATE**: User registration events
-- **UPDATE**: User profile updates, status changes
-- **DELETE**: User deletion events
-
-The `actionType` field uses the `ActionType` enum to ensure type safety and consistency across the application.
-
-### Message Flow
-
-1. **User Operation**: User performs an action (register, update, delete)
-2. **Event Creation**: Service creates a `UserEventDto` with event details
-3. **Message Publishing**: `UserEventPublisher` sends the event to RabbitMQ
-4. **Exchange Routing**: Fanout exchange broadcasts to all bound queues
-5. **Consumer Processing**: Other microservices consume and process events
-
-### Integration Points
-
-The RabbitMQ integration is designed to notify other microservices about user lifecycle events:
-
-- **Course Service**: Notify when users become instructors or are deleted
-- **Notification Service**: Send welcome emails, profile update notifications
-- **Analytics Service**: Track user registration and activity metrics
-- **Audit Service**: Log user changes for compliance
-
-### Security Considerations
-
-- **SSL/TLS**: Uses `amqps://` for encrypted connections
-- **Authentication**: Credentials embedded in connection URL
-- **VHost Isolation**: Uses dedicated virtual host for service isolation
-
-### Monitoring and Observability
-
-- **Message Acknowledgment**: Automatic message acknowledgment for reliability
-- **Connection Pooling**: CachingConnectionFactory for connection management
-- **Error Handling**: Built-in retry mechanisms and dead letter queues (configurable)
-
-### Best Practices Implemented
-
-1. **Idempotent Operations**: Event consumers should handle duplicate messages
-2. **Event Sourcing**: User events provide audit trail of all changes
-3. **Loose Coupling**: Services communicate through events, not direct calls
-4. **Scalability**: Fanout pattern allows multiple consumers per event type
-
-### RabbitMQ Usage Examples
-
-#### Publishing User Events
-To publish user events in your service layer, inject the `UserEventPublisher`:
-
-```java
-@Service
-public class UserServiceImpl implements UserService {
-    
-    private final UserEventPublisher userEventPublisher;
-    
-    @Override
-    public UserModel registerUser(UserRecordDto userRecordDto) {
-        UserModel userModel = // ... create user logic
-        
-        // Publish user creation event
-        UserEventDto userEventDto = new UserEventDto();
-        userEventDto.setUserId(userModel.getUserId());
-        userEventDto.setUserName(userModel.getUsername());
-        userEventDto.setEmail(userModel.getEmail());
-        userEventDto.setFullName(userModel.getFullName());
-        userEventDto.setUserStatus(userModel.getUserStatus().toString());
-        userEventDto.setUserType(userModel.getUserType().toString());
-        userEventDto.setActionType("CREATE");
-        
-        userEventPublisher.publishUserEvent(userEventDto);
-        
-        return userModel;
-    }
-}
-```
-
-#### Local RabbitMQ Setup
-For local development, you can use Docker to run RabbitMQ:
-
-```bash
-# Run RabbitMQ with management UI
-docker run -d --name rabbitmq \
-  -p 5672:5672 \
-  -p 15672:15672 \
-  rabbitmq:3-management
-
-# Access management UI at http://localhost:15672
-# Default credentials: guest/guest
-```
-
-#### Local Configuration
-For local RabbitMQ development, update `application.yml`:
-
-```yaml
-spring:
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    virtual-host: /
-```
-
-#### CloudAMQP Setup
-1. Create a CloudAMQP account at [cloudamqp.com](https://cloudamqp.com)
-2. Create a new instance (free tier available)
-3. Copy the connection URL from the CloudAMQP dashboard
-4. Update the `addresses` property in `application.yml`
-
-#### Message Consumption Example
-Other microservices can consume user events by implementing message listeners:
-
-```java
-@Component
-public class UserEventConsumer {
-    
-    @RabbitListener(queues = "user.events.queue")
-    public void handleUserEvent(UserEventDto userEventDto) {
-        switch (userEventDto.getActionType()) {
-            case "CREATE":
-                // Handle user creation
-                sendWelcomeEmail(userEventDto);
-                break;
-            case "UPDATE":
-                // Handle user update
-                updateUserCache(userEventDto);
-                break;
-            case "DELETE":
-                // Handle user deletion
-                cleanupUserData(userEventDto.getUserId());
-                break;
-        }
-    }
-}
-```
-
-### Troubleshooting RabbitMQ
-
-#### Common Issues
-1. **Connection Refused**: Check RabbitMQ server status and connection parameters
-2. **Authentication Failed**: Verify username/password and virtual host permissions
-3. **Message Not Delivered**: Check exchange and queue bindings
-4. **SSL Certificate Issues**: Ensure proper certificate configuration for CloudAMQP
-
-#### Monitoring
-- **CloudAMQP Dashboard**: Monitor message rates, connections, and queues
-- **Management UI**: Access RabbitMQ management interface for queue inspection
-- **Application Logs**: Check Spring Boot logs for RabbitMQ connection status
-
-#### Performance Tuning
-- **Connection Pooling**: Adjust `CachingConnectionFactory` settings
-- **Message Persistence**: Configure message durability based on requirements
-- **Consumer Concurrency**: Set appropriate consumer thread counts
-
-## Eureka Service Discovery
-
-This application integrates with **Netflix Eureka** for service discovery, enabling dynamic service registration and discovery in a microservices architecture.
-
-### Eureka Client Configuration
-
-The application is configured as a Eureka client that registers itself with the Eureka server:
-
-```yaml
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-  instance:
-    hostname: localhost
-```
-
-### Service Registration
-
-**Service Name:** `ead-authuser-service`
-
-The application automatically registers itself with the Eureka server using the service name defined in `application.yml`:
-
-```yaml
-spring:
-  application:
-    name: ead-authuser-service
-```
-
-### Eureka Client Features
-
-1. **Automatic Registration**: The service automatically registers itself with Eureka on startup
-2. **Health Checks**: Eureka monitors the service health and availability
-3. **Service Discovery**: Other services can discover this service through Eureka
-4. **Load Balancing**: Eureka provides client-side load balancing capabilities
-5. **Fault Tolerance**: Automatic service instance replacement when instances become unavailable
-
-### Dependencies
-
-The application includes the Eureka client dependency:
-
-```xml
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-</dependency>
-```
-
-### Service Discovery Benefits
-
-1. **Dynamic Service Location**: Services can be discovered dynamically without hardcoded URLs
-2. **Load Balancing**: Automatic load balancing across multiple service instances
-3. **Fault Tolerance**: Automatic failover to healthy service instances
-4. **Scalability**: Easy horizontal scaling of service instances
-5. **Centralized Service Registry**: Single point of truth for all service locations
-
-### Eureka Dashboard
-
-Access the Eureka dashboard at `http://localhost:8761` to:
-- View registered services
-- Monitor service health
-- See service instances and their status
-- Manage service registrations
-
-### Service Communication with Eureka
-
-When communicating with other services, the application can use:
-- **Service Discovery**: Look up services by name instead of hardcoded URLs
-- **Load Balancing**: Automatically distribute requests across multiple instances
-- **Circuit Breaker**: Implement fault tolerance patterns with Resilience4j
-- **Configuration Management**: Discover and connect to Spring Cloud Config Server
-
-### ResponsePageDto
-
-The `ResponsePageDto` class handles paginated responses from external services:
-
-**Features:**
-- **Generic Type Support**: Works with any DTO type
-- **JSON Deserialization**: Properly deserializes paginated responses
-- **Page Metadata**: Preserves pagination information
-- **Unknown Properties**: Ignores unknown JSON properties for flexibility
-
-## Resilience4j Circuit Breaker
-
-This application implements **Resilience4j Circuit Breaker** pattern for fault tolerance in microservices communication, preventing cascading failures and providing graceful degradation.
-
-### Circuit Breaker Features
-
-- **Automatic Failure Detection**: Monitors failure rates and automatically opens circuit when threshold is reached
-- **Fallback Methods**: Returns predefined fallback responses when circuit is open
-- **Half-Open State**: Tests service recovery by allowing limited requests through
-- **Configurable Thresholds**: Customizable failure rates, window sizes, and wait durations
-- **Integration with RestClient**: Works seamlessly with Spring's RestClient
-
-### Implementation
-
-The `CourseClient` uses `@CircuitBreaker` annotation to protect external service calls:
-
-```java
-@Component
-public class CourseClient {
-    
-    @CircuitBreaker(name = "circuitBreakerInstance", fallbackMethod = "circuitbreakerfallback")
-    public Page<CourseRecordDto> getAllCoursesByUser(UUID userId, Pageable pageable) {
-        // RestClient call to course service
-    }
-    
-    public Page<CourseRecordDto> circuitbreakerfallback(UUID userId, Pageable pageable, Throwable t) {
-        logger.error("in fallback, cause -> {}", t.toString());
-        return new PageImpl<>(new ArrayList<>());
-    }
-}
-```
-
-**Benefits:**
-- ✅ Prevents cascading failures across microservices
-- ✅ Provides graceful degradation when services are unavailable
-- ✅ Reduces latency by failing fast when circuit is open
-- ✅ Automatic recovery when service becomes available again
-
-### Circuit States
-
-1. **CLOSED**: Circuit is closed, requests flow normally
-2. **OPEN**: Circuit is open, requests are rejected immediately and fallback is called
-3. **HALF_OPEN**: Testing state, allows limited requests to test service recovery
-
-### Configuration
-
-See the [Resilience4j Configuration](#resilience4j-configuration) section in Application Configuration for detailed configuration options.
-
-## Data Transfer Objects (DTOs)
-
-### InstructorRecordDto
-
-Represents instructor subscription data:
-
-```java
-public record InstructorRecordDto(
-    @NotNull(message = "UserId is mandatory") UUID userId
-)
-```
-
-**Fields:**
-- `userId` - Unique user identifier to be registered as instructor
-
-### UserCourseRecordDto
-
-Represents user-course subscription data:
-
-```java
-public record UserCourseRecordDto(
-    UUID userId,
-    @NotNull(message = "CourseId is mandatory") UUID courseId
-)
-```
-
-**Fields:**
-- `userId` - User identifier (optional in request body)
-- `courseId` - Course identifier to subscribe to
-
-### CourseRecordDto
-
-Represents course data received from the course microservice:
-
-```java
-public record CourseRecordDto(
-    UUID courseId,
-    String name,
-    String description,
-    String imageUrl,
-    CourseStatus courseStatus,
-    UUID userInstructor,
-    CourseLevel courseLevel
-)
-```
-
-**Fields:**
-- `courseId` - Unique course identifier
-- `name` - Course name
-- `description` - Course description
-- `imageUrl` - Course image URL
-- `courseStatus` - Course status (ACTIVE, INACTIVE, etc.)
-- `userInstructor` - Instructor user ID
-- `courseLevel` - Course difficulty level (BEGINNER, INTERMEDIATE, ADVANCED)
-
-### ResponsePageDto
-
-Handles paginated responses from external services:
-
-```java
-public class ResponsePageDto<T> extends PageImpl<T> {
-    private final PageMetadata page;
-    // ... implementation details
-}
-```
-
-**Features:**
-- Extends Spring's `PageImpl` for compatibility
-- Custom `PageMetadata` for external service pagination
-- JSON deserialization support
-- Generic type support for different DTOs
-
-## Service Layer Architecture
-
-### Service Layer Methods
-
-#### UserService
-The `UserService` interface includes the following key methods:
-
-**New Methods:**
-- `registerInstructor(UserModel userModel)` - Registers a user as an instructor by updating their user type to INSTRUCTOR
-
-**Existing Methods:**
-- `findAll()` - Retrieve all users
-- `findById(UUID userId)` - Find user by ID (throws NotFoundException if not found)
-- `delete(UserModel userModel)` - Delete user and associated course subscriptions
-- `registerUser(UserRecordDto userRecordDto)` - Register a new user
-- `existsByUsername(String username)` - Check if username exists
-- `existsByEmail(String email)` - Check if email exists
-- `updateUser(UserRecordDto userRecordDto, UserModel userModel)` - Update user information
-- `updatePassword(UserRecordDto userRecordDto, UserModel userModel)` - Update user password
-- `updateImage(UserRecordDto userRecordDto, UserModel userModel)` - Update user profile image
-- `findAll(Specification<UserModel> spec, Pageable pageable)` - Find users with specifications and pagination
-
-### Service Implementation Patterns
-
-**Dependency Injection:**
-- Constructor-based injection for better testability and immutability
-- All dependencies are final, ensuring thread-safety
-
-**Event Publishing:**
-- User lifecycle events are published after successful database operations
-- Events use `ActionType` enum for type safety (CREATE, UPDATE, DELETE)
-
-**Error Handling:**
-- Service layer throws domain-specific exceptions (`NotFoundException`)
-- Exceptions are handled globally by `GlobalExceptionHandler`
-
-## Transaction Management
-
-The service layer uses **Spring's declarative transaction management** with `@Transactional` annotation to ensure data consistency and ACID compliance.
-
-### Transactional Methods
-
-**Read-Only Transactions:**
-- `findAll()` - Optimized for read operations
-- `findById()` - Single entity retrieval
-
-**Write Transactions:**
-- `registerUser()` - Creates new user and publishes CREATE event
-- `updateUser()` - Updates user and publishes UPDATE event
-- `updateImage()` - Updates image URL and publishes UPDATE event
-- `delete()` - Deletes user and publishes DELETE event
-- `registerInstructor()` - Updates user type and publishes UPDATE event
-
-### Transaction Characteristics
-
-```java
-@Transactional
-public UserModel registerUser(UserRecordDto userRecordDto) {
-    // Database operation
-    userRepository.save(userModel);
-    // Event publishing (within same transaction)
-    userEventPublisher.publishUserEvent(userModel.toUserEventDto(ActionType.CREATE));
-    return userModel;
-}
-```
-
-**Benefits:**
-- ✅ **Atomicity**: All operations succeed or fail together
-- ✅ **Consistency**: Database remains in valid state
-- ✅ **Isolation**: Concurrent transactions don't interfere
-- ✅ **Durability**: Committed changes persist
-
-**Transaction Propagation:**
-- Default: `REQUIRED` - Joins existing transaction or creates new one
-- Ensures event publishing happens within same transaction boundary
-
-## Validation & JsonView Pattern
-
-The application implements a sophisticated validation pattern using **Jakarta Bean Validation** combined with **JsonView** for selective field validation and serialization.
-
-### JsonView Validation Groups
-
-The `UserRecordDto` uses nested interfaces to define validation groups:
-
-```java
-public record UserRecordDto(
-    @NotBlank(groups = UserView.RegistrationPost.class)
-    @Size(min = 4, max = 50, groups = UserView.RegistrationPost.class)
-    @JsonView(UserView.RegistrationPost.class)
-    String username,
-    
-    @NotBlank(groups = {UserView.RegistrationPost.class, UserView.PasswordPut.class})
-    @PasswordConstraint(groups = {UserView.RegistrationPost.class, UserView.PasswordPut.class})
-    @JsonView({UserView.RegistrationPost.class, UserView.PasswordPut.class})
-    String password
-    // ... other fields
-) {
-    public interface UserView {
-        interface RegistrationPost {}
-        interface UserPut {}
-        interface PasswordPut {}
-        interface ImagePut {}
-    }
-}
-```
-
-### Usage in Controllers
+Different validation rules per endpoint using validation groups:
 
 ```java
 @PostMapping("/signup")
@@ -1446,44 +564,14 @@ public ResponseEntity<Object> registerUser(
     @RequestBody 
     @Validated(UserRecordDto.UserView.RegistrationPost.class)
     @JsonView(UserRecordDto.UserView.RegistrationPost.class)
-    UserRecordDto userRecordDto,
-    Errors errors) {
-    // Only fields annotated with RegistrationPost group are validated
-    // Only fields with RegistrationPost JsonView are deserialized
+    UserRecordDto userRecordDto) {
+    // Only RegistrationPost fields are validated and deserialized
 }
 ```
 
-**Benefits:**
-- ✅ **Selective Validation**: Different validation rules per endpoint
-- ✅ **Type Safety**: Compile-time validation group checking
-- ✅ **API Flexibility**: Same DTO for multiple endpoints with different requirements
-- ✅ **Security**: Prevents mass assignment vulnerabilities
+#### 2. Dynamic Query Specifications
 
-### Custom Validation
-
-**PasswordConstraint:**
-- Custom validator implementing `ConstraintValidator`
-- Enforces password policy (length, complexity, etc.)
-- Reusable across different validation groups
-
-## Dynamic Query Specifications
-
-The application uses **JPA Specifications** with **specification-arg-resolver** library for dynamic, type-safe query building.
-
-### SpecificationTemplate
-
-```java
-@And({
-    @Spec(path="userType", spec = Equal.class),
-    @Spec(path="userStatus", spec = Equal.class),
-    @Spec(path="email", spec = Like.class),
-    @Spec(path="username", spec = Like.class),
-    @Spec(path="fullName", spec = LikeIgnoreCase.class),
-})
-public interface UserSpec extends Specification<UserModel> {}
-```
-
-### Usage in Controllers
+Type-safe dynamic queries using JPA Specifications:
 
 ```java
 @GetMapping
@@ -1494,452 +582,93 @@ public ResponseEntity<Page<UserModel>> getAllUsers(
 }
 ```
 
-### Query Examples
+**Query Examples:**
+- `GET /users?userType=INSTRUCTOR&userStatus=ACTIVE`
+- `GET /users?email=@example.com&fullName=john`
 
-**Filter by User Type:**
-```
-GET /users?userType=INSTRUCTOR
-```
+#### 3. Transaction Management
 
-**Filter by Status:**
-```
-GET /users?userStatus=ACTIVE
-```
+All write operations use `@Transactional` for ACID compliance:
 
-**Search by Email (Like):**
-```
-GET /users?email=@example.com
-```
-
-**Search by Full Name (Case-Insensitive):**
-```
-GET /users?fullName=john
-```
-
-**Combined Filters:**
-```
-GET /users?userType=INSTRUCTOR&userStatus=ACTIVE&email=@example.com&page=0&size=10&sort=userId,ASC
-```
-
-**Available Spec Types:**
-- `Equal` - Exact match
-- `Like` - SQL LIKE pattern matching
-- `LikeIgnoreCase` - Case-insensitive LIKE
-- `In` - IN clause (multiple values)
-- `Between` - Range queries
-- And more...
-
-**Benefits:**
-- ✅ **Type Safety**: Compile-time query building
-- ✅ **Dynamic Queries**: Build queries from HTTP parameters
-- ✅ **Reusability**: Specification composition
-- ✅ **Performance**: Optimized SQL generation
-
-## Event-Driven Architecture
-
-### User Event Publishing
-
-The application publishes user lifecycle events to RabbitMQ for asynchronous processing by other microservices.
-
-### Event Conversion Pattern
-
-The `UserModel` entity includes a conversion method for event publishing:
-
-```java
-public UserEventDto toUserEventDto(ActionType actionType) {
-    UserEventDto userEventDto = new UserEventDto();
-    BeanUtils.copyProperties(this, userEventDto);
-    userEventDto.setUserType(this.getUserType().toString());
-    userEventDto.setUserStatus(this.getUserStatus().toString());
-    userEventDto.setActionType(actionType.toString());
-    return userEventDto;
-}
-```
-
-**Usage:**
 ```java
 @Transactional
-public void delete(UserModel userModel) {
-    userRepository.delete(userModel);
-    userEventPublisher.publishUserEvent(userModel.toUserEventDto(ActionType.DELETE));
+public UserModel registerUser(UserRecordDto userRecordDto) {
+    UserModel userModel = // ... create user
+    userRepository.save(userModel);
+    userEventPublisher.publishUserEvent(userModel.toUserEventDto(ActionType.CREATE));
+    return userModel;
 }
 ```
 
-**Event Flow:**
-1. **Service Operation**: User operation (create/update/delete)
-2. **Event Creation**: `toUserEventDto()` converts entity to DTO
-3. **Event Publishing**: `UserEventPublisher` sends to RabbitMQ
-4. **Fanout Exchange**: Broadcasts to all bound queues
-5. **Consumer Processing**: Other services consume and process events
+#### 4. HATEOAS Support
 
-**Benefits:**
-- ✅ **Loose Coupling**: Services communicate via events, not direct calls
-- ✅ **Scalability**: Multiple consumers can process same event
-- ✅ **Resilience**: Events persist if consumer is temporarily unavailable
-- ✅ **Audit Trail**: Complete history of user changes
-
-#### UserHandler
-The `UserHandler` service provides user-specific utility methods:
-
-**Methods:**
-- `toUserModel(UserRecordDto userRecordDTO)` - Converts UserRecordDto to UserModel with default values (ACTIVE status, USER type, UTC timestamps)
-- `validateUserRecord(UserRecordDto userRecordDTO)` - Validates user record data
-- `validateUsername(UserRecordDto userRecordDTO)` - Checks for duplicate usernames and throws `DuplicatedUsernameException` if found
-
-**Features:**
-- **Default Values**: Automatically sets user status to ACTIVE and user type to USER
-- **Timezone Handling**: Uses UTC timezone for creation and update timestamps
-- **Validation**: Encapsulates username duplication validation logic
-- **Separation of Concerns**: Keeps conversion and validation logic separate from service layer
-
-#### UserCourseService
-The `UserCourseService` interface manages user-course relationships:
-
-**Methods:**
-- `existsByUserAndCourseId(UserModel userModel, UUID courseId)` - Check if user-course subscription exists
-- `save(UserCourseModel userCourseModel)` - Save user-course subscription
-- `existsByCourseId(UUID courseId)` - Check if any user-course subscriptions exist for a course
-- `deleteAllByCourseId(UUID courseId)` - Delete all user-course subscriptions for a specific course
-
-### Repository Layer Methods
-
-#### UserRepository
-The `UserRepository` extends `JpaRepository` and `JpaSpecificationExecutor`:
-
-**Methods:**
-- `existsByUsername(String username)` - Check if username exists
-- `existsByEmail(String email)` - Check if email exists
-- Standard JPA methods: `findAll()`, `findById()`, `save()`, `delete()`, etc.
-- Specification support for dynamic queries
-
-#### UserCourseRepository
-The `UserCourseRepository` manages user-course relationship data:
-
-**Methods:**
-- `existsByUserAndCourseId(UserModel userModel, UUID courseId)` - Check if specific user-course subscription exists
-- `findAllUserCourseIntoUser(UUID userId)` - Find all course subscriptions for a specific user (native query)
-- `existsByCourseId(UUID courseId)` - Check if any subscriptions exist for a course
-- `deleteAllByCourseId(UUID courseId)` - Delete all subscriptions for a specific course
-- Standard JPA methods: `save()`, `delete()`, etc.
-
-### User Model
-The `UserModel` entity includes the following fields:
-- `userId` (UUID)
-- `username` (String)
-- `password` (String, not exposed in API)
-- `email` (String)
-- `fullName` (String)
-- `userStatus` (Enum: `ACTIVE`, `BLOCKED`)
-- `userType` (Enum: `ADMIN`, `USER`, `STUDENT`, `INSTRUCTOR`)
-- `phoneNumber` (String)
-- `imageUrl` (String)
-- `creationDate` (LocalDateTime)
-- `lastUpdateDate` (LocalDateTime)
-- `_links` (HATEOAS links section)
-
-### Exception Handling
-
-The application uses a global exception handler to manage errors and provide consistent error responses. Custom exceptions can be defined and handled centrally.
-
-- The application now throws `NotFoundException` in the service layer if a user is not found, which is handled globally to return a 404 error with a structured error response.
-
-### Error Response Format
-When an error is handled, the API returns a JSON response with the following structure:
+Resources include hypermedia links for API discoverability:
 
 ```json
 {
-  "errorCode": 404,
-  "errorMessage": "Resource not found",
-  "errorDetails": {
-    // Optional additional details
+  "userId": "...",
+  "username": "john_doe",
+  "_links": {
+    "self": {
+      "href": "http://localhost:8087/ead-authuser/users/..."
+    }
   }
 }
 ```
-- `errorCode`: HTTP status code (e.g., 404 for not found)
-- `errorMessage`: Description of the error
-- `errorDetails`: Optional map of additional error details
 
-## UserRecordDTO
+### Best Practices
 
-The `UserRecordDTO` is used as the request body for user-related endpoints. It includes validation constraints and different fields are required depending on the operation (registration, update, password change, image update).
+1. **Dependency Injection**: Constructor-based injection for immutability
+2. **Exception Handling**: Centralized via `GlobalExceptionHandler`
+3. **Logging**: Structured logging with appropriate levels
+4. **Validation**: Input validation at controller level
+5. **Security**: Never log sensitive data (passwords, tokens)
+6. **Transactions**: Keep transactions short and focused
+7. **Event Publishing**: Publish events after successful database operations
 
-| Field        | Type   | Required For           | Constraints & Notes                                                                 |
-|--------------|--------|-----------------------|-------------------------------------------------------------------------------------|
-| username     | String | Registration          | Required, 4-50 chars                                                               |
-| email        | String | Registration          | Required, must be valid email format                                                |
-| password     | String | Registration, Password| Required, 6-20 chars, must meet password policy                                     |
-| oldPassword  | String | Password              | Required for password update, 6-20 chars, must meet password policy                 |
-| fullName     | String | Registration, Update  | Required for registration, required for update                                      |
-| phoneNumber  | String | Registration, Update  | Optional                                                                           |
-| imageUrl     | String | Image Update          | Required for image update                                                           |
+## 🧪 Testing
 
-**Validation Groups:**
-- **Registration:** Used in `POST /auth/signup` (username, email, password, fullName, phoneNumber)
-- **Update:** Used in `PUT /users/{userId}` (fullName, phoneNumber)
-- **Password:** Used in `PUT /users/{userId}/password` (oldPassword, password)
-- **Image Update:** Used in `PUT /users/{userId}/image` (imageUrl)
+Run tests with:
 
-**Example: Registration Request Body**
-```json
-{
-  "username": "string",
-  "email": "string",
-  "password": "string",
-  "fullName": "string",
-  "phoneNumber": "string"
-}
+```bash
+./mvnw test
 ```
 
-**Example: Update User Request Body**
-```json
-{
-  "fullName": "string",
-  "phoneNumber": "string"
-}
+### Test Structure
+
+```
+src/test/java/com/ead/authuser/
+└── AuthuserApplicationTests.java
 ```
 
-**Example: Update Password Request Body**
-```json
-{
-  "oldPassword": "string",
-  "password": "string"
-}
-```
-
-**Example: Update Image Request Body**
-```json
-{
-  "imageUrl": "string"
-}
-```
-
-## Benefits of HATEOAS Implementation
-
-1. **Discoverability**: Clients can discover available actions by following links in responses
-2. **Loose Coupling**: Clients don't need to know specific URL patterns
-3. **Self-Documenting**: API responses include information about available operations
-4. **Evolvability**: API can evolve without breaking clients that follow links
-5. **REST Compliance**: Follows REST principles more closely with hypermedia controls
-
-## API Navigation with HATEOAS
-
-Clients can navigate the API by:
-1. Starting with a known entry point
-2. Following links in the `_links` section of responses
-3. Using the `href` values to make subsequent requests
-4. Discovering available operations dynamically
-
-This approach makes the API more flexible and maintainable while providing a better developer experience.
-
-## Best Practices & Development Guidelines
-
-### Code Organization
-
-1. **Package Structure**: Follow domain-driven design principles
-   - Controllers handle HTTP concerns
-   - Services contain business logic
-   - Repositories manage data access
-   - DTOs separate API contracts from entities
-
-2. **Dependency Injection**: Use constructor injection
-   - Better testability
-   - Immutable dependencies (final fields)
-   - Clear dependencies at compile time
-
-3. **Exception Handling**: Centralized exception handling
-   - Domain-specific exceptions (`NotFoundException`, `DuplicatedUsernameException`)
-   - Global exception handler for consistent error responses
-   - Proper HTTP status codes
-
-### Transaction Management
-
-1. **Use `@Transactional` for write operations**
-   - Ensures data consistency
-   - Automatic rollback on exceptions
-   - Proper isolation levels
-
-2. **Keep transactions short**
-   - Don't perform long-running operations in transactions
-   - Publish events after transaction commits (if needed)
-
-3. **Read-only transactions for queries**
-   - Use `@Transactional(readOnly = true)` for read operations
-   - Optimizes database connection usage
-
-### Validation
-
-1. **Use validation groups**
-   - Different validation rules per endpoint
-   - Prevents over-validation
-   - Better error messages
-
-2. **Custom validators**
-   - Reusable validation logic
-   - Business rule enforcement
-   - Clear validation messages
-
-### Event Publishing
-
-1. **Publish events after successful operations**
-   - Ensures data consistency
-   - Event represents actual state change
-
-2. **Use enums for action types**
-   - Type safety
-   - Compile-time checking
-   - Clear intent
-
-3. **Idempotent event processing**
-   - Consumers should handle duplicate events
-   - Use event IDs for deduplication
-
-### API Design
-
-1. **HATEOAS for discoverability**
-   - Clients can navigate API dynamically
-   - Reduces coupling
-   - Self-documenting
-
-2. **Pagination for collections**
-   - Prevents large payloads
-   - Better performance
-   - User-friendly
-
-3. **Proper HTTP status codes**
-   - 200 OK for successful GET/PUT
-   - 201 CREATED for POST
-   - 404 NOT FOUND for missing resources
-   - 409 CONFLICT for business rule violations
-
-### Microservices Communication
-
-1. **Use circuit breakers**
-   - Prevents cascading failures
-   - Graceful degradation
-   - Fast failure
-
-2. **Timeout configuration**
-   - Prevent hanging requests
-   - Configurable per service
-   - Reasonable defaults
-
-3. **Service discovery**
-   - Use Eureka service names
-   - Avoid hardcoded URLs
-   - Dynamic instance resolution
-
-### Logging
-
-1. **Structured logging**
-   - Use appropriate log levels
-   - Include context (userId, requestId)
-   - Avoid sensitive data (passwords, tokens)
-
-2. **Request logging**
-   - Log incoming requests
-   - Exclude sensitive headers
-   - Configurable payload size
-
-### Security Considerations
-
-1. **Password handling**
-   - Never log passwords
-   - Use `@JsonIgnore` on password fields
-   - Consider password hashing (BCrypt recommended)
-
-2. **Input validation**
-   - Validate all inputs
-   - Prevent injection attacks
-   - Sanitize user data
-
-3. **Error messages**
-   - Don't expose internal details
-   - Generic error messages for users
-   - Detailed logs for debugging
-
-## Performance Considerations
-
-### Database Optimization
-
-1. **Indexing**: Ensure proper indexes on:
-   - `username` (unique constraint)
-   - `email` (unique constraint)
-   - `userId` (primary key)
-   - Frequently queried fields
-
-2. **Query Optimization**:
-   - Use pagination for large datasets
-   - Avoid N+1 queries
-   - Use projections for read-only operations
-
-3. **Connection Pooling**:
-   - Configure appropriate pool size
-   - Monitor connection usage
-   - Set reasonable timeouts
-
-### Caching Strategy
-
-1. **Consider caching for**:
-   - Frequently accessed user data
-   - Static configuration
-   - Service discovery results
-
-2. **Cache invalidation**:
-   - Invalidate on updates
-   - Use TTL for time-sensitive data
-   - Clear on user deletion
-
-### Microservices Communication
-
-1. **Connection Pooling**:
-   - RestClient uses connection pooling
-   - Configure appropriate pool size
-   - Reuse connections
-
-2. **Timeout Configuration**:
-   - 5-second timeout prevents hanging
-   - Adjust based on service SLA
-   - Consider retry with exponential backoff
-
-3. **Circuit Breaker**:
-   - Prevents resource exhaustion
-   - Fast failure reduces latency
-   - Fallback provides graceful degradation
-
-### Event Publishing
-
-1. **Asynchronous Publishing**:
-   - Don't block on event publishing
-   - Use async patterns if needed
-   - Handle publishing failures gracefully
-
-2. **Message Persistence**:
-   - Configure RabbitMQ for durability
-   - Use acknowledgments
-   - Dead letter queues for failed messages
-
-## Troubleshooting
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-#### 1. Service Not Registering with Eureka
+#### Service Not Registering with Eureka
 
-**Symptoms:**
-- Service doesn't appear in Eureka dashboard
-- Other services can't discover this service
+**Symptoms:** Service doesn't appear in Eureka dashboard
 
 **Solutions:**
-- Verify Eureka server is running
+- Verify Eureka server is running on port 8761
 - Check `eureka.client.service-url.defaultZone` configuration
-- Ensure `@EnableEurekaClient` is present (auto-configured in Spring Cloud)
-- Check network connectivity
-- Verify service name matches Eureka registration
+- Ensure network connectivity to Eureka server
+- Review application logs for registration errors
 
-#### 2. Circuit Breaker Always Open
+#### JWT Authentication Failing
 
-**Symptoms:**
-- All requests fail with fallback
-- Circuit never closes
+**Symptoms:** 401 Unauthorized errors on protected endpoints
+
+**Solutions:**
+- Verify JWT secret is configured and at least 64 characters
+- Check token expiration time
+- Ensure `Authorization: Bearer <token>` header is included
+- Verify token hasn't expired
+- Check security filter chain configuration
+
+#### Circuit Breaker Always Open
+
+**Symptoms:** All external service calls fail with fallback
 
 **Solutions:**
 - Check failure threshold configuration
@@ -1948,37 +677,20 @@ This approach makes the API more flexible and maintainable while providing a bet
 - Check underlying service health
 - Review logs for actual failure causes
 
-#### 3. Configuration Not Refreshing
+#### RabbitMQ Connection Issues
 
-**Symptoms:**
-- Changes in config server not reflected
-- `@RefreshScope` beans not updating
-
-**Solutions:**
-- Verify `/actuator/refresh` endpoint is accessible
-- Check `@RefreshScope` annotation is present
-- Ensure config server is accessible
-- Verify configuration property names match
-- Check actuator endpoints are exposed
-
-#### 4. RabbitMQ Connection Issues
-
-**Symptoms:**
-- Events not being published
-- Connection refused errors
+**Symptoms:** Events not being published, connection refused
 
 **Solutions:**
 - Verify RabbitMQ server is running
-- Check connection URL format
+- Check connection URL format (amqps:// for CloudAMQP)
 - Verify credentials and virtual host
 - Check network connectivity
 - Review SSL certificate configuration (for CloudAMQP)
 
-#### 5. Database Connection Issues
+#### Database Connection Issues
 
-**Symptoms:**
-- Application fails to start
-- Connection timeout errors
+**Symptoms:** Application fails to start, connection timeout
 
 **Solutions:**
 - Verify PostgreSQL is running
@@ -1987,22 +699,9 @@ This approach makes the API more flexible and maintainable while providing a bet
 - Check connection pool configuration
 - Review network connectivity
 
-#### 6. Validation Errors Not Showing
-
-**Symptoms:**
-- Validation fails but no error details
-- Generic error messages
-
-**Solutions:**
-- Verify `@Validated` annotation is present
-- Check validation groups match
-- Ensure `Errors` parameter is in controller method
-- Verify custom validators are properly registered
-- Check error handling in `GlobalExceptionHandler`
-
 ### Debugging Tips
 
-1. **Enable Debug Logging**:
+1. **Enable Debug Logging:**
    ```yaml
    logging:
      level:
@@ -2011,43 +710,52 @@ This approach makes the API more flexible and maintainable while providing a bet
        org.hibernate.SQL: DEBUG
    ```
 
-2. **Check Application Logs**:
-   - Review startup logs for configuration issues
-   - Check for exception stack traces
-   - Monitor request/response logs
-
-3. **Use Actuator Endpoints**:
+2. **Check Actuator Endpoints:**
    - `/actuator/health` - Service health
    - `/actuator/info` - Application information
    - `/actuator/metrics` - Performance metrics
 
-4. **Database Queries**:
-   - Enable `show-sql` in development
-   - Review generated SQL queries
-   - Check query execution plans
+3. **Review Application Logs:**
+   - Check startup logs for configuration issues
+   - Review exception stack traces
+   - Monitor request/response logs
 
-5. **Network Debugging**:
-   - Test service connectivity
-   - Verify firewall rules
-   - Check DNS resolution
-   - Review network latency
+## 📦 Dependencies
 
-### Performance Issues
+### Core Dependencies
 
-1. **Slow Queries**:
-   - Review database indexes
-   - Analyze query execution plans
-   - Consider query optimization
-   - Use pagination
+- **Spring Boot 3.5.0**: Application framework
+- **Spring Cloud 2025.0.0**: Microservices support
+- **Java 21**: Programming language
+- **PostgreSQL 42.7.6**: Database driver
 
-2. **High Memory Usage**:
-   - Review connection pool sizes
-   - Check for memory leaks
-   - Monitor JVM heap
-   - Review caching strategies
+### Key Libraries
 
-3. **Slow External Calls**:
-   - Check timeout configurations
-   - Review circuit breaker settings
-   - Monitor service response times
-   - Consider caching responses
+- **Spring Security**: Authentication and authorization
+- **JWT (jjwt 0.13.0)**: Token generation and validation
+- **Spring HATEOAS**: Hypermedia-driven REST APIs
+- **Resilience4j**: Circuit breaker and fault tolerance
+- **Log4j2**: Advanced logging
+- **Specification Arg Resolver 3.1.0**: Dynamic query building
+
+See `pom.xml` for complete dependency list.
+
+## 📝 License
+
+This project is part of an educational platform (EAD - Educação a Distância).
+
+## 🤝 Contributing
+
+1. Follow the existing code structure and patterns
+2. Ensure all tests pass
+3. Update documentation for new features
+4. Follow security best practices
+5. Use meaningful commit messages
+
+## 📞 Support
+
+For issues and questions, please refer to the project documentation or contact the development team.
+
+---
+
+**Built with ❤️ using Spring Boot and modern microservices patterns**
