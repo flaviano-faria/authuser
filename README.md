@@ -740,9 +740,6 @@ src/test/java/com/ead/authuser/
 
 See `pom.xml` for complete dependency list.
 
-## 📝 License
-
-This project is part of an educational platform (EAD - Educação a Distância).
 
 ## 🤝 Contributing
 
@@ -752,10 +749,5 @@ This project is part of an educational platform (EAD - Educação a Distância).
 4. Follow security best practices
 5. Use meaningful commit messages
 
-## 📞 Support
 
-For issues and questions, please refer to the project documentation or contact the development team.
-
----
-
-**Built with ❤️ using Spring Boot and modern microservices patterns**
+**Built with using Spring Boot and modern microservices patterns**
